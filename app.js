@@ -62,13 +62,13 @@ function persistTasks() {
     try {
       tasks = loadTasks();
     } catch (readError) {
-      lockStorage(readError);
+      error = readError;
     }
+    lockStorage(error);
     renderTasks();
     renderCalendar();
-    storageWarning.hidden = false;
     storageWarning.textContent =
-      `ذخیره‌سازی انجام نشد؛ تغییر اخیر ثبت نشده است. ${error.message}`;
+      `ذخیره‌سازی انجام نشد؛ تغییر اخیر ثبت نشده است و امکانات ویرایش تا بررسی حافظه غیرفعال شدند. ${error.message}`;
     return false;
   }
 }
@@ -204,9 +204,11 @@ function renderTasks() {
   if (visibleTasks.length === 0) {
     const empty = document.createElement("li");
     empty.className = "empty-state";
-    empty.textContent = selectedDate
-      ? "برای این روز هنوز کاری ثبت نکردی. می‌تونی از فرم بالا یک کار اضافه کنی."
-      : "هنوز کاری ثبت نکردی. اولین قدم رو اضافه کن.";
+    empty.textContent = !storageReady
+      ? "اطلاعات وظایف در دسترس نیست؛ برای جلوگیری از نمایش اشتباه، فهرست خالی تلقی نمی‌شود."
+      : selectedDate
+        ? "برای این روز هنوز کاری ثبت نکردی. می‌تونی از فرم بالا یک کار اضافه کنی."
+        : "هنوز کاری ثبت نکردی. اولین قدم رو اضافه کن.";
     taskList.append(empty);
     updateProgress();
     return;
