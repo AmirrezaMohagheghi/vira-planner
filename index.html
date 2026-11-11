@@ -119,10 +119,22 @@
       </div>
 
       <section class="panel calendar-preview" id="calendar">
-        <div class="panel-heading"><div><span class="eyebrow">برنامه‌ریزی</span><h2>تقویم هفتگی</h2></div><span class="soft-tag">به‌زودی</span></div>
-        <p class="coming-soon">نمای هفتگی و تقویم شمسی در مرحلهٔ بعدی به ویرا اضافه می‌شوند.</p>
+        <div class="panel-heading calendar-heading">
+          <div><span class="eyebrow">برنامه‌ریزی شمسی</span><h2>تقویم ویرا</h2></div>
+          <button class="secondary-button" id="show-all-tasks" type="button">نمایش همهٔ کارها</button>
+        </div>
+        <div class="calendar-toolbar">
+          <button class="calendar-nav" id="previous-month" type="button" aria-label="ماه قبل">›</button>
+          <strong id="calendar-month-title">ماه و سال</strong>
+          <button class="calendar-nav" id="next-month" type="button" aria-label="ماه بعد">‹</button>
+          <button class="today-button" id="go-to-today" type="button">امروز</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid" role="grid" aria-label="تقویم ماهانه">
+          <div class="weekday">شنبه</div><div class="weekday">یکشنبه</div><div class="weekday">دوشنبه</div><div class="weekday">سه‌شنبه</div><div class="weekday">چهارشنبه</div><div class="weekday">پنجشنبه</div><div class="weekday">جمعه</div>
+        </div>
+        <div class="calendar-legend"><span><i></i> روز دارای کار</span><span id="selected-date-label">همهٔ کارها نمایش داده می‌شوند</span></div>
       </section>
-      <footer class="footer" id="reports">ویرا · نسخهٔ دوم <span>ساخته‌شده برای برنامه‌ریزی بهتر</span></footer>
+      <footer class="footer" id="reports">ویرا · نسخهٔ سوم <span>تقویم شمسی و برنامه‌ریزی روزانه</span></footer>
     </main>
   </div>
 </body>
