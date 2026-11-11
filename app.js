@@ -260,6 +260,15 @@ function selectCalendarDate(date) {
   renderTasks();
 }
 
+function moveSelectedDay(amount) {
+  const baseDate = selectedDate ? isoToDate(selectedDate) : new Date();
+  baseDate.setDate(baseDate.getDate() + amount);
+  const parts = getJalaliParts(baseDate);
+  calendarYear = parts.year;
+  calendarMonth = parts.month;
+  selectCalendarDate(baseDate);
+}
+
 function renderCalendar() {
   calendarMonthTitle.textContent = jalaliMonthFormatter.format(
     findJalaliMonthStart(calendarYear, calendarMonth) || new Date()
@@ -358,6 +367,8 @@ focusButton.addEventListener("click", () => {
   document.querySelector("#tasks").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
+document.querySelector("#previous-day").addEventListener("click", () => moveSelectedDay(-1));
+document.querySelector("#next-day").addEventListener("click", () => moveSelectedDay(1));
 document.querySelector("#previous-month").addEventListener("click", () => changeCalendarMonth(-1));
 document.querySelector("#next-month").addEventListener("click", () => changeCalendarMonth(1));
 document.querySelector("#go-to-today").addEventListener("click", () => {
