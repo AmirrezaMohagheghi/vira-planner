@@ -52,7 +52,7 @@
       </section>
 
       <section class="stats-grid" aria-label="خلاصه امروز">
-        <article class="stat-card"><span class="stat-icon violet">✓</span><div><p>کارهای امروز</p><strong id="total-count">۰</strong><small>کار ثبت‌شده</small></div></article>
+        <article class="stat-card"><span class="stat-icon violet">✓</span><div><p>همهٔ کارها</p><strong id="total-count">۰</strong><small>کار ثبت‌شده</small></div></article>
         <article class="stat-card"><span class="stat-icon green">↗</span><div><p>انجام‌شده</p><strong id="done-count">۰</strong><small>آفرین، ادامه بده</small></div></article>
         <article class="stat-card"><span class="stat-icon orange">◷</span><div><p>باقی‌مانده</p><strong id="left-count">۰</strong><small>قدم بعدی تو</small></div></article>
       </section>
@@ -60,20 +60,57 @@
       <div class="content-grid">
         <section class="panel tasks-panel" id="tasks">
           <div class="panel-heading">
-            <div><span class="eyebrow">فهرست امروز</span><h2>کارهای من</h2></div>
+            <div><span class="eyebrow">فهرست برنامه‌ریزی</span><h2>کارهای من</h2></div>
             <span class="soft-tag" id="task-date-label">امروز</span>
           </div>
+
           <form class="task-form" id="task-form">
-            <input id="task-input" type="text" maxlength="100" placeholder="مثلاً: مطالعهٔ یک فصل از کتاب..." autocomplete="off" required>
-            <button class="primary-button add-button" type="submit">افزودن</button>
+            <div class="form-field title-field">
+              <label for="task-input">عنوان کار</label>
+              <input id="task-input" type="text" maxlength="100" placeholder="مثلاً: مطالعهٔ یک فصل از کتاب..." autocomplete="off" required>
+            </div>
+            <div class="task-fields">
+              <div class="form-field">
+                <label for="task-date">تاریخ انجام</label>
+                <input id="task-date" type="date">
+              </div>
+              <div class="form-field">
+                <label for="task-time">ساعت</label>
+                <input id="task-time" type="time">
+              </div>
+              <div class="form-field">
+                <label for="task-priority">اولویت</label>
+                <select id="task-priority">
+                  <option value="medium">متوسط</option>
+                  <option value="high">زیاد</option>
+                  <option value="low">کم</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="task-category">دسته‌بندی</label>
+                <select id="task-category">
+                  <option value="personal">شخصی</option>
+                  <option value="study">درس و مطالعه</option>
+                  <option value="university">دانشگاه</option>
+                  <option value="work">کار</option>
+                  <option value="worship">عبادت</option>
+                  <option value="other">سایر</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="primary-button add-button" id="submit-task" type="submit">افزودن کار</button>
+              <button class="secondary-button" id="cancel-edit" type="button" hidden>لغو ویرایش</button>
+            </div>
           </form>
+
           <ul class="task-list" id="task-list">
             <li class="empty-state">هنوز کاری ثبت نکردی. اولین قدم رو اضافه کن.</li>
           </ul>
         </section>
 
         <section class="panel progress-panel" id="habits">
-          <div class="panel-heading"><div><span class="eyebrow">نگاهی به مسیر</span><h2>پیشرفت امروز</h2></div></div>
+          <div class="panel-heading"><div><span class="eyebrow">نگاهی به مسیر</span><h2>پیشرفت کارها</h2></div></div>
           <div class="progress-ring" id="progress-ring"><div><strong id="progress-percent">۰٪</strong><small>تکمیل شده</small></div></div>
           <p class="progress-caption" id="progress-caption">با یک کار کوچک شروع کن.</p>
           <div class="mini-divider"></div>
@@ -85,7 +122,7 @@
         <div class="panel-heading"><div><span class="eyebrow">برنامه‌ریزی</span><h2>تقویم هفتگی</h2></div><span class="soft-tag">به‌زودی</span></div>
         <p class="coming-soon">نمای هفتگی و تقویم شمسی در مرحلهٔ بعدی به ویرا اضافه می‌شوند.</p>
       </section>
-      <footer class="footer" id="reports">ویرا · نسخهٔ آغازین <span>ساخته‌شده برای برنامه‌ریزی بهتر</span></footer>
+      <footer class="footer" id="reports">ویرا · نسخهٔ دوم <span>ساخته‌شده برای برنامه‌ریزی بهتر</span></footer>
     </main>
   </div>
 </body>
