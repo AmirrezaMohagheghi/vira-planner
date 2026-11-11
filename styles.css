@@ -158,3 +158,31 @@ h1 span { font-size: 23px; }
   .task-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .footer { flex-direction: column; }
 }
+
+/* Jalali calendar - version 0.3 */
+.calendar-preview { margin-top: 17px; }
+.calendar-heading { margin-bottom: 17px; }
+.calendar-toolbar { display: flex; align-items: center; justify-content: center; gap: 13px; margin: 10px 0 17px; }
+.calendar-toolbar strong { min-width: 150px; text-align: center; font-size: 14px; }
+.calendar-nav, .today-button { border: 1px solid var(--line); color: var(--text); background: #ffffff08; border-radius: 9px; min-width: 34px; height: 34px; }
+.calendar-nav { font-size: 22px; line-height: 1; }
+.calendar-nav:hover, .today-button:hover { border-color: #a78bfa88; background: #a78bfa15; }
+.today-button { padding: 0 12px; color: #c6b7ff; font-size: 10px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+.weekday { padding: 8px 2px; color: var(--muted); text-align: center; font-size: 10px; }
+.calendar-day { position: relative; display: grid; place-items: center; gap: 4px; min-height: 58px; border: 1px solid var(--line); border-radius: 10px; color: #dce5f2; background: #ffffff03; font-size: 12px; transition: .15s ease; }
+.calendar-day:hover { border-color: #a78bfa88; background: #a78bfa12; }
+.calendar-day.outside-month { color: #61718a; background: transparent; }
+.calendar-day.is-today { border-color: #a78bfa99; color: #d7caff; }
+.calendar-day.is-selected { color: #19132b; border-color: transparent; background: linear-gradient(135deg, #c4b5fd, #9b87f0); font-weight: 800; }
+.calendar-day .task-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+.calendar-day.is-selected .task-dot { background: #34265c; }
+.calendar-legend { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; color: var(--muted); font-size: 10px; }
+.calendar-legend span:first-child { display: inline-flex; align-items: center; gap: 7px; }
+.calendar-legend i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+@media (max-width: 520px) {
+  .calendar-grid { gap: 4px; }
+  .calendar-day { min-height: 45px; border-radius: 8px; }
+  .weekday { font-size: 9px; }
+  .calendar-legend { align-items: flex-start; flex-direction: column; }
+}
