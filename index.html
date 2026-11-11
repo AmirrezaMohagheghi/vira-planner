@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101827">
+  <title>ویرا | دستیار برنامه‌ریزی شخصی</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="ویرا">
+        <span class="brand-mark">و</span>
+        <span><strong>ویرا</strong><small>دستیار برنامه‌ریزی</small></span>
+      </a>
+      <nav class="main-nav" aria-label="منوی اصلی">
+        <a class="nav-link active" href="#dashboard"><span>⌂</span> نمای کلی</a>
+        <a class="nav-link" href="#tasks"><span>✓</span> کارها</a>
+        <a class="nav-link" href="#calendar"><span>▦</span> تقویم</a>
+        <a class="nav-link" href="#habits"><span>◷</span> عادت‌ها</a>
+        <a class="nav-link" href="#reports"><span>▥</span> گزارش‌ها</a>
+      </nav>
+      <div class="sidebar-note">
+        <span class="note-icon">✦</span>
+        <p>قدم‌های کوچک،<br>تغییرهای بزرگ می‌سازند.</p>
+      </div>
+      <div class="profile">
+        <div class="avatar">م</div>
+        <div><strong>برنامه‌ریز من</strong><small>نسخهٔ شخصی</small></div>
+      </div>
+    </aside>
+
+    <main class="main-content" id="dashboard">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="today-date">امروز</p>
+          <h1>روزت بخیر <span>☀️</span></h1>
+          <p class="subtitle">قرار نیست همه‌چیز را یک‌روزه انجام بدهی؛ فقط از همین‌جا شروع کن.</p>
+        </div>
+        <button class="primary-button" id="focus-button" type="button">＋ <span>کار جدید</span></button>
+      </header>
+
+      <section class="welcome-card">
+        <div>
+          <span class="welcome-label">یک شروع تازه</span>
+          <h2>امروز می‌خوای چه چیزی رو جلو ببری؟</h2>
+          <p>کارهای مهمت رو مشخص کن و با آرامش یکی‌یکی پیش برو.</p>
+        </div>
+        <div class="welcome-art" aria-hidden="true"><span>✦</span><span>◌</span><span>✧</span></div>
+      </section>
+
+      <section class="stats-grid" aria-label="خلاصه امروز">
+        <article class="stat-card"><span class="stat-icon violet">✓</span><div><p>کارهای امروز</p><strong id="total-count">۰</strong><small>کار ثبت‌شده</small></div></article>
+        <article class="stat-card"><span class="stat-icon green">↗</span><div><p>انجام‌شده</p><strong id="done-count">۰</strong><small>آفرین، ادامه بده</small></div></article>
+        <article class="stat-card"><span class="stat-icon orange">◷</span><div><p>باقی‌مانده</p><strong id="left-count">۰</strong><small>قدم بعدی تو</small></div></article>
+      </section>
+
+      <div class="content-grid">
+        <section class="panel tasks-panel" id="tasks">
+          <div class="panel-heading">
+            <div><span class="eyebrow">فهرست امروز</span><h2>کارهای من</h2></div>
+            <span class="soft-tag" id="task-date-label">امروز</span>
+          </div>
+          <form class="task-form" id="task-form">
+            <input id="task-input" type="text" maxlength="100" placeholder="مثلاً: مطالعهٔ یک فصل از کتاب..." autocomplete="off" required>
+            <button class="primary-button add-button" type="submit">افزودن</button>
+          </form>
+          <ul class="task-list" id="task-list">
+            <li class="empty-state">هنوز کاری ثبت نکردی. اولین قدم رو اضافه کن.</li>
+          </ul>
+        </section>
+
+        <section class="panel progress-panel" id="habits">
+          <div class="panel-heading"><div><span class="eyebrow">نگاهی به مسیر</span><h2>پیشرفت امروز</h2></div></div>
+          <div class="progress-ring" id="progress-ring"><div><strong id="progress-percent">۰٪</strong><small>تکمیل شده</small></div></div>
+          <p class="progress-caption" id="progress-caption">با یک کار کوچک شروع کن.</p>
+          <div class="mini-divider"></div>
+          <div class="tip-row"><span>✦</span><p>پیشنهاد ویرا: فقط روی مهم‌ترین کار بعدی تمرکز کن.</p></div>
+        </section>
+      </div>
+
+      <section class="panel calendar-preview" id="calendar">
+        <div class="panel-heading"><div><span class="eyebrow">برنامه‌ریزی</span><h2>تقویم هفتگی</h2></div><span class="soft-tag">به‌زودی</span></div>
+        <p class="coming-soon">نمای هفتگی و تقویم شمسی در مرحلهٔ بعدی به ویرا اضافه می‌شوند.</p>
+      </section>
+      <footer class="footer" id="reports">ویرا · نسخهٔ آغازین <span>ساخته‌شده برای برنامه‌ریزی بهتر</span></footer>
+    </main>
+  </div>
+</body>
+</html>
