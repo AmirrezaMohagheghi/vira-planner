@@ -61,7 +61,11 @@
         <section class="panel tasks-panel" id="tasks">
           <div class="panel-heading">
             <div><span class="eyebrow">فهرست برنامه‌ریزی</span><h2>کارهای من</h2></div>
-            <span class="soft-tag" id="task-date-label">امروز</span>
+            <div class="day-switcher" aria-label="جابجایی بین روزها">
+              <button class="day-switch-button" id="previous-day" type="button" aria-label="روز قبل">›</button>
+              <span class="soft-tag" id="task-date-label">امروز</span>
+              <button class="day-switch-button" id="next-day" type="button" aria-label="روز بعد">‹</button>
+            </div>
           </div>
 
           <form class="task-form" id="task-form">
