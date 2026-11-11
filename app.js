@@ -17,23 +17,34 @@ const progressPercent = document.querySelector("#progress-percent");
 const progressCaption = document.querySelector("#progress-caption");
 const focusButton = document.querySelector("#focus-button");
 
-const priorityLabels = {
-  high: "زیاد",
-  medium: "متوسط",
-  low: "کم"
+const calendarGrid = document.querySelector("#calendar-grid");
+const calendarMonthTitle = document.querySelector("#calendar-month-title");
+const selectedDateLabel = document.querySelector("#selected-date-label");
+const taskDateLabel = document.querySelector("#task-date-label");
+const showAllTasksButton = document.querySelector("#show-all-tasks");
+
+const priorityLabels = { high: "زیاد", medium: "متوسط", low: "کم" };
+const categoryLabels = {
+  personal: "شخصی", study: "درس و مطالعه", university: "دانشگاه",
+  work: "کار", worship: "عبادت", other: "سایر"
 };
 
-const categoryLabels = {
-  personal: "شخصی",
-  study: "درس و مطالعه",
-  university: "دانشگاه",
-  work: "کار",
-  worship: "عبادت",
-  other: "سایر"
-};
+const jalaliNumericFormatter = new Intl.DateTimeFormat("en-US-u-ca-persian", {
+  year: "numeric", month: "numeric", day: "numeric"
+});
+const jalaliMonthFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+  month: "long", year: "numeric"
+});
+const jalaliDateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+  day: "numeric", month: "long", year: "numeric"
+});
+const persianNumber = new Intl.NumberFormat("fa-IR");
 
 let tasks = loadTasks();
 let editingTaskId = null;
+let selectedDate = null;
+let calendarYear;
+let calendarMonth;
 
 function loadTasks() {
   try {
@@ -50,42 +61,62 @@ function saveTasks() {
 }
 
 function toPersianDigits(value) {
-  return new Intl.NumberFormat("fa-IR").format(value);
+  return persianNumber.format(value);
 }
 
-function getTodayDateValue() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+function dateToISO(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
+function isoToDate(value) {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getJalaliParts(date) {
+  const parts = jalaliNumericFormatter.formatToParts(date);
+  const values = {};
+  for (const part of parts) {
+    if (part.type === "year" || part.type === "month" || part.type === "day") {
+      values[part.type] = Number(part.value);
+    }
+  }
+  return values;
+}
+
+function findJalaliMonthStart(year, month) {
+  // حدود میلادی ماه شمسی را پیدا می‌کنیم و روز اول آن را با تقویم داخلی مرورگر تشخیص می‌دهیم.
+  const approximate = new Date(year + 621, month + 1, 15);
+  for (let offset = -45; offset <= 45; offset++) {
+    const candidate = new Date(approximate);
+    candidate.setDate(approximate.getDate() + offset);
+    const parts = getJalaliParts(candidate);
+    if (parts.year === year && parts.month === month && parts.day === 1) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 function formatTaskDate(dateValue) {
-  if (!dateValue) return "";
-  const date = new Date(`${dateValue}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-    day: "numeric",
-    month: "short",
-    year: "numeric"
-  }).format(date);
+  const date = isoToDate(dateValue);
+  return date ? jalaliDateFormatter.format(date) : "";
+}
+
+function getTodayISO() {
+  return dateToISO(new Date());
 }
 
 function showToday() {
-  const now = new Date();
-  const date = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  }).format(now);
-  document.querySelector("#today-date").textContent = date;
-  document.querySelector("#task-date-label").textContent =
+  document.querySelector("#today-date").textContent =
     new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-      day: "numeric",
-      month: "long"
-    }).format(now);
+      weekday: "long", day: "numeric", month: "long", year: "numeric"
+    }).format(new Date());
 }
 
 function updateProgress() {
@@ -137,19 +168,28 @@ function createMetaChip(text, extraClass = "") {
   return chip;
 }
 
+function getVisibleTasks() {
+  return selectedDate
+    ? tasks.filter((task) => task.date === selectedDate)
+    : tasks;
+}
+
 function renderTasks() {
   taskList.replaceChildren();
+  const visibleTasks = getVisibleTasks();
 
-  if (tasks.length === 0) {
+  if (visibleTasks.length === 0) {
     const empty = document.createElement("li");
     empty.className = "empty-state";
-    empty.textContent = "هنوز کاری ثبت نکردی. اولین قدم رو اضافه کن.";
+    empty.textContent = selectedDate
+      ? "برای این روز هنوز کاری ثبت نکردی. می‌تونی از فرم بالا یک کار اضافه کنی."
+      : "هنوز کاری ثبت نکردی. اولین قدم رو اضافه کن.";
     taskList.append(empty);
     updateProgress();
     return;
   }
 
-  tasks.forEach((task) => {
+  visibleTasks.forEach((task) => {
     const item = document.createElement("li");
     item.className = `task-item${task.done ? " completed" : ""}`;
 
@@ -166,7 +206,6 @@ function renderTasks() {
 
     const main = document.createElement("div");
     main.className = "task-main";
-
     const label = document.createElement("span");
     label.className = "task-text";
     label.textContent = task.title;
@@ -174,16 +213,13 @@ function renderTasks() {
 
     const meta = document.createElement("div");
     meta.className = "task-meta";
-
     if (task.date) meta.append(createMetaChip(`📅 ${formatTaskDate(task.date)}`));
     if (task.time) meta.append(createMetaChip(`◷ ${task.time}`));
-
     const priority = task.priority || "medium";
     meta.append(createMetaChip(`اولویت: ${priorityLabels[priority] || "متوسط"}`, `priority-${priority}`));
     const category = task.category || "personal";
     meta.append(createMetaChip(categoryLabels[category] || "شخصی"));
-
-    if (meta.childElementCount) main.append(meta);
+    main.append(meta);
 
     const editButton = document.createElement("button");
     editButton.type = "button";
@@ -204,6 +240,7 @@ function renderTasks() {
       if (editingTaskId === task.id) resetTaskForm();
       saveTasks();
       renderTasks();
+      renderCalendar();
     });
 
     item.append(checkbox, main, editButton, removeButton);
@@ -211,6 +248,77 @@ function renderTasks() {
   });
 
   updateProgress();
+}
+
+function selectCalendarDate(date) {
+  selectedDate = dateToISO(date);
+  taskDate.value = selectedDate;
+  const formatted = jalaliDateFormatter.format(date);
+  selectedDateLabel.textContent = `کارهای ${formatted}`;
+  taskDateLabel.textContent = formatted;
+  renderCalendar();
+  renderTasks();
+}
+
+function renderCalendar() {
+  calendarMonthTitle.textContent = jalaliMonthFormatter.format(
+    findJalaliMonthStart(calendarYear, calendarMonth) || new Date()
+  );
+
+  while (calendarGrid.children.length > 7) {
+    calendarGrid.removeChild(calendarGrid.lastElementChild);
+  }
+
+  const firstDay = findJalaliMonthStart(calendarYear, calendarMonth);
+  if (!firstDay) return;
+
+  const firstWeekday = (firstDay.getDay() + 1) % 7; // شنبه = صفر
+  const startDate = new Date(firstDay);
+  startDate.setDate(firstDay.getDate() - firstWeekday);
+
+  for (let index = 0; index < 42; index++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + index);
+    const parts = getJalaliParts(date);
+    const iso = dateToISO(date);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-day";
+    button.setAttribute("role", "gridcell");
+    button.setAttribute("aria-label", jalaliDateFormatter.format(date));
+    button.textContent = toPersianDigits(parts.day);
+
+    if (parts.month !== calendarMonth || parts.year !== calendarYear) {
+      button.classList.add("outside-month");
+    }
+    if (iso === getTodayISO()) button.classList.add("is-today");
+    if (iso === selectedDate) button.classList.add("is-selected");
+
+    if (tasks.some((task) => task.date === iso)) {
+      const dot = document.createElement("span");
+      dot.className = "task-dot";
+      dot.setAttribute("aria-hidden", "true");
+      button.append(dot);
+    }
+
+    button.addEventListener("click", () => {
+      const clickedParts = getJalaliParts(date);
+      calendarYear = clickedParts.year;
+      calendarMonth = clickedParts.month;
+      selectCalendarDate(date);
+    });
+    calendarGrid.append(button);
+  }
+}
+
+function changeCalendarMonth(amount) {
+  let nextMonth = calendarMonth + amount;
+  let nextYear = calendarYear;
+  if (nextMonth < 1) { nextMonth = 12; nextYear--; }
+  if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+  calendarMonth = nextMonth;
+  calendarYear = nextYear;
+  renderCalendar();
 }
 
 taskForm.addEventListener("submit", (event) => {
@@ -239,16 +347,37 @@ taskForm.addEventListener("submit", (event) => {
 
   saveTasks();
   renderTasks();
+  renderCalendar();
   resetTaskForm();
   taskInput.focus();
 });
 
 cancelEditButton.addEventListener("click", resetTaskForm);
-
 focusButton.addEventListener("click", () => {
   taskInput.focus();
   document.querySelector("#tasks").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
+document.querySelector("#previous-month").addEventListener("click", () => changeCalendarMonth(-1));
+document.querySelector("#next-month").addEventListener("click", () => changeCalendarMonth(1));
+document.querySelector("#go-to-today").addEventListener("click", () => {
+  const today = new Date();
+  const parts = getJalaliParts(today);
+  calendarYear = parts.year;
+  calendarMonth = parts.month;
+  selectCalendarDate(today);
+});
+showAllTasksButton.addEventListener("click", () => {
+  selectedDate = null;
+  selectedDateLabel.textContent = "همهٔ کارها نمایش داده می‌شوند";
+  taskDateLabel.textContent = "همهٔ کارها";
+  renderCalendar();
+  renderTasks();
+});
+
+const todayParts = getJalaliParts(new Date());
+calendarYear = todayParts.year;
+calendarMonth = todayParts.month;
 showToday();
+renderCalendar();
 renderTasks();
