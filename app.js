@@ -1,4 +1,5 @@
 import { loadTasks, saveTasks } from "./src/infrastructure/storage/local-task-storage.js";
+import { createTaskForUI, updateTaskForUI } from "./src/application/tasks/task-use-cases.js";
 
 const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
@@ -225,9 +226,14 @@ function renderTasks() {
     checkbox.checked = Boolean(task.done);
     checkbox.setAttribute("aria-label", "تغییر وضعیت کار");
     checkbox.addEventListener("change", () => {
-      task.done = checkbox.checked;
-      persistTasks();
-      renderTasks();
+      try {
+        const updatedTask = updateTaskForUI(task, { done: checkbox.checked });
+        tasks = tasks.map((entry) => entry.id === task.id ? updatedTask : entry);
+        if (persistTasks()) renderTasks();
+      } catch (error) {
+        lockStorage(error);
+        renderTasks();
+      }
     });
 
     const main = document.createElement("div");
@@ -372,18 +378,22 @@ taskForm.addEventListener("submit", (event) => {
     category: taskCategory.value
   };
 
-  if (editingTaskId) {
-    const task = tasks.find((entry) => entry.id === editingTaskId);
-    if (task) Object.assign(task, taskDetails);
-  } else {
-    tasks.unshift({
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      ...taskDetails,
-      done: false
-    });
+  try {
+    if (editingTaskId) {
+      const task = tasks.find((entry) => entry.id === editingTaskId);
+      if (!task) return;
+      const updatedTask = updateTaskForUI(task, taskDetails);
+      tasks = tasks.map((entry) => entry.id === editingTaskId ? updatedTask : entry);
+    } else {
+      tasks.unshift(createTaskForUI(taskDetails));
+    }
+  } catch (error) {
+    storageWarning.hidden = false;
+    storageWarning.textContent = `اطلاعات واردشده معتبر نیست: ${error.message}`;
+    return;
   }
 
-  persistTasks();
+  if (!persistTasks()) return;
   renderTasks();
   renderCalendar();
   resetTaskForm();
