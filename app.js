@@ -16,6 +16,7 @@ const progressRing = document.querySelector("#progress-ring");
 const progressPercent = document.querySelector("#progress-percent");
 const progressCaption = document.querySelector("#progress-caption");
 const focusButton = document.querySelector("#focus-button");
+const storageWarning = document.querySelector("#storage-warning");
 
 const calendarGrid = document.querySelector("#calendar-grid");
 const calendarMonthTitle = document.querySelector("#calendar-month-title");
@@ -40,7 +41,43 @@ const jalaliDateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
 });
 const persianNumber = new Intl.NumberFormat("fa-IR");
 
-let tasks = loadTasks();
+let storageReady = true;
+let tasks = [];
+
+function lockStorage(error) {
+  storageReady = false;
+  storageWarning.hidden = false;
+  storageWarning.textContent =
+    `ویرا نتوانست اطلاعات قبلی را با اطمینان بخواند یا ذخیره کند. برای جلوگیری از ازدست‌رفتن اطلاعات، افزودن و ویرایش وظایف موقتاً غیرفعال شده است. جزئیات: ${error.message}`;
+  taskForm.querySelectorAll("input, select, button").forEach((control) => {
+    control.disabled = true;
+  });
+}
+
+function persistTasks() {
+  try {
+    saveTasks(tasks);
+    return true;
+  } catch (error) {
+    try {
+      tasks = loadTasks();
+    } catch (readError) {
+      lockStorage(readError);
+    }
+    renderTasks();
+    renderCalendar();
+    storageWarning.hidden = false;
+    storageWarning.textContent =
+      `ذخیره‌سازی انجام نشد؛ تغییر اخیر ثبت نشده است. ${error.message}`;
+    return false;
+  }
+}
+
+try {
+  tasks = loadTasks();
+} catch (error) {
+  lockStorage(error);
+}
 let editingTaskId = null;
 let selectedDate = null;
 let calendarYear;
@@ -180,13 +217,14 @@ function renderTasks() {
     item.className = `task-item${task.done ? " completed" : ""}`;
 
     const checkbox = document.createElement("input");
+    checkbox.disabled = !storageReady;
     checkbox.type = "checkbox";
     checkbox.className = "task-check";
     checkbox.checked = Boolean(task.done);
     checkbox.setAttribute("aria-label", "تغییر وضعیت کار");
     checkbox.addEventListener("change", () => {
       task.done = checkbox.checked;
-      saveTasks(tasks);
+      persistTasks();
       renderTasks();
     });
 
@@ -208,6 +246,7 @@ function renderTasks() {
     main.append(meta);
 
     const editButton = document.createElement("button");
+    editButton.disabled = !storageReady;
     editButton.type = "button";
     editButton.className = "edit-task";
     editButton.textContent = "✎";
@@ -216,6 +255,7 @@ function renderTasks() {
     editButton.addEventListener("click", () => startEditingTask(task));
 
     const removeButton = document.createElement("button");
+    removeButton.disabled = !storageReady;
     removeButton.type = "button";
     removeButton.className = "delete-task";
     removeButton.textContent = "×";
@@ -224,7 +264,7 @@ function renderTasks() {
     removeButton.addEventListener("click", () => {
       tasks = tasks.filter((entry) => entry.id !== task.id);
       if (editingTaskId === task.id) resetTaskForm();
-      saveTasks(tasks);
+      persistTasks();
       renderTasks();
       renderCalendar();
     });
@@ -318,6 +358,7 @@ function changeCalendarMonth(amount) {
 
 taskForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (!storageReady) return;
   const title = taskInput.value.trim();
   if (!title) return;
 
@@ -340,7 +381,7 @@ taskForm.addEventListener("submit", (event) => {
     });
   }
 
-  saveTasks(tasks);
+  persistTasks();
   renderTasks();
   renderCalendar();
   resetTaskForm();
