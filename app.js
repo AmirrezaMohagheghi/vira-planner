@@ -1,4 +1,4 @@
-const STORAGE_KEY = "vira-planner-tasks-v1";
+import { loadTasks, saveTasks } from "./src/infrastructure/storage/local-task-storage.js";
 
 const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
@@ -45,20 +45,6 @@ let editingTaskId = null;
 let selectedDate = null;
 let calendarYear;
 let calendarMonth;
-
-function loadTasks() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const parsed = saved ? JSON.parse(saved) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveTasks() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-}
 
 function toPersianDigits(value) {
   return persianNumber.format(value);
@@ -200,7 +186,7 @@ function renderTasks() {
     checkbox.setAttribute("aria-label", "تغییر وضعیت کار");
     checkbox.addEventListener("change", () => {
       task.done = checkbox.checked;
-      saveTasks();
+      saveTasks(tasks);
       renderTasks();
     });
 
@@ -238,7 +224,7 @@ function renderTasks() {
     removeButton.addEventListener("click", () => {
       tasks = tasks.filter((entry) => entry.id !== task.id);
       if (editingTaskId === task.id) resetTaskForm();
-      saveTasks();
+      saveTasks(tasks);
       renderTasks();
       renderCalendar();
     });
@@ -354,7 +340,7 @@ taskForm.addEventListener("submit", (event) => {
     });
   }
 
-  saveTasks();
+  saveTasks(tasks);
   renderTasks();
   renderCalendar();
   resetTaskForm();
