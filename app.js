@@ -214,6 +214,9 @@ function updateProgress() {
 
 function resetTaskForm() {
   taskForm.reset();
+  taskTimeHour.setCustomValidity("");
+  taskTimeMinute.setCustomValidity("");
+  taskTime.value = "";
   editingTaskId = null;
   submitTaskButton.textContent = "افزودن کار";
   cancelEditButton.hidden = true;
