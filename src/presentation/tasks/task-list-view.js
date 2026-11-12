@@ -104,6 +104,9 @@ export function createTaskListView({
       meta.className = "task-meta";
       if (task.date) meta.append(createMetaChip(`📅 ${formatTaskDate(task.date)}`));
       if (task.time) meta.append(createMetaChip(`◷ ${task.time}`));
+      if (task.durationMinutes !== null && task.durationMinutes !== undefined) {
+        meta.append(createMetaChip(`مدت تخمینی: ${formatDigits(task.durationMinutes)} دقیقه`));
+      }
       const priority = task.priority || "medium";
       meta.append(createMetaChip(`اولویت: ${priorityLabels[priority] || "متوسط"}`, `priority-${priority}`));
       const category = task.category || "personal";
