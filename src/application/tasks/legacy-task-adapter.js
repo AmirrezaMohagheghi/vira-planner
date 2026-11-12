@@ -60,7 +60,12 @@ export function fromLegacyTask(legacyTask, options = {}) {
       );
     }
 
-    return validateTask({ ...legacyTask });
+    const canonical = { ...legacyTask };
+    delete canonical.date;
+    delete canonical.time;
+    delete canonical.category;
+    delete canonical.done;
+    return validateTask(canonical);
   }
 
   const canonical = createTask({
