@@ -2,7 +2,7 @@ import { createTask, updateTask } from "../../domain/tasks/task.js";
 import {
   fromLegacyTask,
   toLegacyTask
-} from "../../domain/tasks/legacy-task-adapter.js";
+} from "./legacy-task-adapter.js";
 
 function emptyToNull(value) {
   return value === "" || value === undefined ? null : value;
