@@ -71,7 +71,8 @@ let taskListView;
 
 function renderTaskViews() {
   taskListView.render();
-  calendarView.render();}
+  calendarView.render();
+}
 
 function toPersianDigits(value) {
   return persianNumber.format(value);
@@ -158,8 +159,7 @@ taskListView = createTaskListView({
     try {
       const result = taskCollection.toggle(task.id, done);
       if (!result.ok) handleTaskOperationFailure(result);
-      taskListView.render();
-      calendarView.render();
+      renderTaskViews();
     } catch (error) {
       storageWarning.hidden = false;
       storageWarning.textContent = `تغییر وضعیت وظیفه انجام نشد: ${error.message}`;
