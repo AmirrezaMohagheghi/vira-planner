@@ -21,6 +21,7 @@ import { createTaskFormView } from "./src/presentation/tasks/task-form-view.js";
 const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
 const taskDate = document.querySelector("#task-date");
+const taskDuration = document.querySelector("#task-duration");
 const taskTime = document.querySelector("#task-time");
 const taskTimeHour = document.querySelector("#task-time-hour");
 const taskTimeMinute = document.querySelector("#task-time-minute");
@@ -108,6 +109,7 @@ const taskFormView = createTaskFormView({
   dateInput: taskDate,
   priorityInput: taskPriority,
   categoryInput: taskCategory,
+  durationInput: taskDuration,
   submitButton: submitTaskButton,
   cancelButton: cancelEditButton,
   taskTimeInput
