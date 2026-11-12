@@ -5,6 +5,14 @@ const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
 const taskDate = document.querySelector("#task-date");
 const taskTime = document.querySelector("#task-time");
+
+taskTime.addEventListener("input", () => {
+  const digits = taskTime.value.replace(/\\D/g, "").slice(0, 4);
+  const formatted = digits.length > 2
+    ? `${digits.slice(0, 2)}:${digits.slice(2)}`
+    : digits;
+  taskTime.value = formatted;
+});
 const taskPriority = document.querySelector("#task-priority");
 const taskCategory = document.querySelector("#task-category");
 const submitTaskButton = document.querySelector("#submit-task");
