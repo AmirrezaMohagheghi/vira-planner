@@ -24,6 +24,33 @@ function getStorage(storage) {
   return storage;
 }
 
+function validateLegacyTaskRecords(tasks) {
+  if (!Array.isArray(tasks)) {
+    throw new TaskStorageError("INVALID_DATA", "ساختار اطلاعات قدیمی معتبر نیست.");
+  }
+
+  const ids = new Set();
+  for (const task of tasks) {
+    if (!task || typeof task !== "object" || Array.isArray(task) ||
+        typeof task.id !== "string" || task.id.trim() === "" ||
+        typeof task.title !== "string" || task.title.trim() === "") {
+      throw new TaskStorageError(
+        "INVALID_LEGACY_TASK",
+        "حداقل یکی از وظایف قدیمی شناسه یا عنوان معتبر ندارد؛ دادهٔ اصلی حفظ شد."
+      );
+    }
+    if (ids.has(task.id)) {
+      throw new TaskStorageError(
+        "DUPLICATE_TASK_ID",
+        `شناسهٔ وظیفهٔ قدیمی تکراری است: ${task.id}.`
+      );
+    }
+    ids.add(task.id);
+  }
+
+  return tasks;
+}
+
 function validateTaskCollection(tasks) {
   if (!Array.isArray(tasks)) {
     throw new TaskStorageError(
@@ -69,7 +96,9 @@ function parseSavedValue(raw) {
   }
 
   // Version 1 was a raw array. Application layer owns legacy normalization.
-  if (Array.isArray(parsed)) return { kind: "legacy", tasks: parsed };
+  if (Array.isArray(parsed)) {
+    return { kind: "legacy", tasks: validateLegacyTaskRecords(parsed) };
+  }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new TaskStorageError(
@@ -143,12 +172,14 @@ function writeEnvelope(store, tasks) {
       throw new Error("Stored value is not a current schema envelope.");
     }
   } catch (cause) {
-    if (previous !== null) {
-      try {
+    try {
+      if (previous !== null) {
         store.setItem(STORAGE_KEY, previous);
-      } catch {
-        // The original backup remains available if rollback also fails.
+      } else if (typeof store.removeItem === "function") {
+        store.removeItem(STORAGE_KEY);
       }
+    } catch {
+      // The original backup remains available if rollback also fails.
     }
     throw new TaskStorageError(
       "VERIFY_FAILED",
@@ -211,12 +242,14 @@ export function restoreTasksFromBackup(storage = globalThis.localStorage) {
       throw new Error("Restored value failed byte-for-byte verification.");
     }
   } catch (cause) {
-    if (current !== null) {
-      try {
+    try {
+      if (current !== null) {
         store.setItem(STORAGE_KEY, current);
-      } catch {
-        // The rollback copy and backup are retained for manual recovery.
+      } else if (typeof store.removeItem === "function") {
+        store.removeItem(STORAGE_KEY);
       }
+    } catch {
+      // The rollback copy and backup are retained for manual recovery.
     }
     throw new TaskStorageError(
       "RESTORE_FAILED",
