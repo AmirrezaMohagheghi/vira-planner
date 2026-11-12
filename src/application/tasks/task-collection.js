@@ -36,13 +36,7 @@ export function createTaskCollection(options = {}) {
       lastPersistedTasks = structuredClone(tasks);
       return { ok: true };
     } catch (writeError) {
-      try {
-        tasks = readTasks();
-        lastPersistedTasks = structuredClone(tasks);
-      } catch (readError) {
-        tasks = structuredClone(lastPersistedTasks);
-        writeError.recoveryError = readError;
-      }
+      tasks = structuredClone(lastPersistedTasks);
       storageReady = false;
       storageError = writeError;
       return { ok: false, kind: "storage", error: writeError };
