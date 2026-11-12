@@ -197,3 +197,35 @@ h1 span { font-size: 23px; }
 
 /* Storage safety notice */
 .storage-warning { margin: -12px 0 22px; padding: 13px 16px; border: 1px solid #f3b87566; border-radius: 11px; color: #f5c994; background: #f3b87512; font-size: 11px; line-height: 2; }
+
+.time-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #0b1524;
+}
+.time-picker:focus-within {
+  border-color: #a78bfa88;
+  box-shadow: 0 0 0 3px #a78bfa12;
+}
+.time-picker .time-part {
+  width: 48px;
+  min-width: 0;
+  padding: 5px 3px;
+  border: 0;
+  outline: none;
+  border-radius: 5px;
+  color: var(--text);
+  background: transparent;
+  text-align: center;
+  direction: ltr;
+  font-variant-numeric: tabular-nums;
+}
+.time-picker .time-part:focus { box-shadow: none; }
+.time-picker .time-part::placeholder { color: #71819a; opacity: 1; }
+.time-separator { color: var(--muted); font-weight: 700; }
