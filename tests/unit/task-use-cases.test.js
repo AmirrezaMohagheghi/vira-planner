@@ -77,7 +77,6 @@ test("updates UI fields through the canonical model without losing rich fields",
   assert.equal(updated.durationMinutes, 45);
   assert.equal(updated.description, "شرح وظیفه");
   assert.equal(updated.endTime, "10:30");
-  assert.equal(updated.durationMinutes, 60);
   assert.equal(updated.deadline, "2026-11-15T12:00:00.000Z");
   assert.deepEqual(updated.dependencyIds, ["task-a"]);
   assert.equal(updated.parentTaskId, "parent-1");
