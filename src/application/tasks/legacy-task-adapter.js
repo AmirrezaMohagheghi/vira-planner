@@ -24,7 +24,7 @@ const CANONICAL_REQUIRED_FIELDS = Object.freeze([
 ]);
 
 const CANONICAL_MARKERS = CANONICAL_REQUIRED_FIELDS.filter((field) =>
-  !["id", "title", "priority"].includes(field)
+  !["id", "title", "description", "priority"].includes(field)
 );
 
 function emptyToNull(value) {
