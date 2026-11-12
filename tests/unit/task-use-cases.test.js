@@ -13,7 +13,8 @@ test("creates a UI-compatible task through the domain model", () => {
     date: "2026-11-12",
     time: "09:30",
     priority: "high",
-    category: "study"
+    category: "study",
+    durationMinutes: 90
   }, { id: "created-1", now: fixedNow });
 
   assert.equal(task.id, "created-1");
@@ -22,6 +23,7 @@ test("creates a UI-compatible task through the domain model", () => {
   assert.equal(task.time, "09:30");
   assert.equal(task.priority, "high");
   assert.equal(task.category, "study");
+  assert.equal(task.durationMinutes, 90);
   assert.equal(task.done, false);
   assert.equal(task.plannedDate, "2026-11-12");
   assert.equal(task.startTime, "09:30");
@@ -63,7 +65,8 @@ test("updates UI fields through the canonical model without losing rich fields",
     date: "",
     time: "10:15",
     priority: "high",
-    category: "university"
+    category: "university",
+    durationMinutes: 45
   }, { now: fixedNow });
 
   assert.equal(updated.title, "عنوان تازه");
@@ -71,6 +74,7 @@ test("updates UI fields through the canonical model without losing rich fields",
   assert.equal(updated.time, "10:15");
   assert.equal(updated.priority, "high");
   assert.equal(updated.category, "university");
+  assert.equal(updated.durationMinutes, 45);
   assert.equal(updated.description, "شرح وظیفه");
   assert.equal(updated.endTime, "10:30");
   assert.equal(updated.durationMinutes, 60);
