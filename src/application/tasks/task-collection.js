@@ -108,6 +108,9 @@ export function createTaskCollection(options = {}) {
       const unavailable = rejectWhenUnavailable();
       if (unavailable) return unavailable;
 
+      const taskExists = tasks.some((task) => task.id === id);
+      if (!taskExists) return { ok: false, kind: "not-found" };
+
       tasks = tasks.filter((task) => task.id !== id);
       return persist();
     }
