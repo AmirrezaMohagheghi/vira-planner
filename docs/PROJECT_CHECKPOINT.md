@@ -737,6 +737,7 @@ SHAهای زیر از تاریخچهٔ کاری ثبت‌شده‌اند؛ بر�
 - **منابع رسمی:** Todoist recurring dates https://www.todoist.com/help/todoist/features/introduction-to-recurring-dates-YUYVJJAV ؛ Motion recurring cadences https://www.usemotion.com/help/project-management/task/reference-tasks/recurring-task-cadences ؛ Motion missed recurrence FAQ https://www.usemotion.com/help/project-management/task/task-scheduling-faq ؛ Motion custom scheduling https://www.usemotion.com/help/time-management/auto-scheduling/auto-scheduling-how-to-guide .
 - **وضعیت تصمیم:** بررسی رقبا و پیشنهاد ثبت شد؛ منتظر تأیید/اصلاح کاربر هستیم. هیچ کدی تغییر نکرده است.
 - **تأیید کاربر دربارهٔ مبنای تکرار وظیفه:** هر وظیفهٔ تکرارشونده باید بتواند بین دو مبنا انتخاب کند: (۱) تقویم‌محور، occurrence بعدی از الگوی اصلی/تاریخ برنامه‌ریزی‌شده محاسبه شود، حتی اگر نوبت قبلی دیر انجام شده باشد؛ (۲) تکمیل‌محور، occurrence بعدی از تاریخ تکمیل واقعی نوبت قبلی محاسبه شود. این انتخاب متعلق به recurrence rule است و با تعهد ثابت یا هدف منعطف هفتگی یکی نیست.
+- **تأیید کاربر دربارهٔ تقویم و تعطیلات:** تقویم شمسی مبنای اصلی نمایش و تعامل باقی می‌ماند؛ تعطیلات رسمی ایران باید در مدل برنامه‌ریزی پشتیبانی شوند و تعطیلات شخصی کاربر نیز قابل تعریف باشند. تعطیل‌بودن یک روز به‌تنهایی به معنی لغو خودکار همهٔ فعالیت‌ها نیست؛ این اطلاعات باید به‌عنوان سیگنال/قید قابل تنظیم در زمان‌بندی استفاده شوند. منبع و روش به‌روزرسانی دادهٔ تعطیلات رسمی، نسخه‌بندی و امکان اصلاح دستی هنوز باید طراحی شود.
 
 ### 2026-11-12 — تأیید تست‌های تقویم در سیستم محلی کاربر
 
