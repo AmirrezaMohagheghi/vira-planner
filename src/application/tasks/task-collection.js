@@ -40,12 +40,14 @@ export function createTaskCollection(options = {}) {
       }
       storageReady = false;
       storageError = error;
-      return { ok: false, error };
+      return { ok: false, kind: "storage", error };
     }
   }
 
   function rejectWhenUnavailable() {
-    return storageReady ? null : { ok: false, error: storageError };
+    return storageReady
+      ? null
+      : { ok: false, kind: "storage", error: storageError };
   }
 
   function updateById(id, changes) {
@@ -53,9 +55,15 @@ export function createTaskCollection(options = {}) {
     if (unavailable) return unavailable;
 
     const currentTask = tasks.find((task) => task.id === id);
-    if (!currentTask) return { ok: false, reason: "not-found" };
+    if (!currentTask) return { ok: false, kind: "not-found" };
 
-    const updatedTask = updateTask(currentTask, changes);
+    let updatedTask;
+    try {
+      updatedTask = updateTask(currentTask, changes);
+    } catch (error) {
+      return { ok: false, kind: "validation", error };
+    }
+
     tasks = tasks.map((task) => task.id === id ? updatedTask : task);
     return persist();
   }
@@ -77,7 +85,14 @@ export function createTaskCollection(options = {}) {
       const unavailable = rejectWhenUnavailable();
       if (unavailable) return unavailable;
 
-      tasks = [createTask(details), ...tasks];
+      let task;
+      try {
+        task = createTask(details);
+      } catch (error) {
+        return { ok: false, kind: "validation", error };
+      }
+
+      tasks = [task, ...tasks];
       return persist();
     },
 
