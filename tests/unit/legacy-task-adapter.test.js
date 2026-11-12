@@ -219,3 +219,15 @@ test("rejects a non-array task collection", () => {
   assert.throws(() => fromLegacyTasks({}), /must be an array/);
   assert.throws(() => toLegacyTasks({}), /must be an array/);
 });
+
+test("treats description as a supported legacy field rather than a canonical marker", () => {
+  const task = fromLegacyTask({
+    id: "legacy-description",
+    title: "کار توضیح‌دار",
+    description: "توضیحات قدیمی",
+    date: "2026-11-12"
+  }, { now: fixedNow });
+
+  assert.equal(task.description, "توضیحات قدیمی");
+  assert.equal(task.plannedDate, "2026-11-12");
+});
