@@ -48,6 +48,18 @@ function lockStorage(error) {
   });
 }
 
+function handleTaskOperationFailure(result) {
+  if (result.kind === "storage" && result.error) {
+    lockStorage(result.error);
+    return;
+  }
+
+  if (result.kind === "validation" && result.error) {
+    storageWarning.hidden = false;
+    storageWarning.textContent = `اطلاعات واردشده معتبر نیست: ${result.error.message}`;
+  }
+}
+
 if (!taskCollection.isStorageReady()) {
   lockStorage(taskCollection.getStorageError());
 }
@@ -109,7 +121,7 @@ taskForm.addEventListener("submit", (event) => {
   }
 
   if (!result.ok) {
-    if (result.error) lockStorage(result.error);
+    handleTaskOperationFailure(result);
     taskListView.render();
     calendarView.render();
     return;
@@ -143,7 +155,7 @@ taskListView = createTaskListView({
   onToggleTask: (task, done) => {
     try {
       const result = taskCollection.toggle(task.id, done);
-      if (!result.ok && result.error) lockStorage(result.error);
+      if (!result.ok) handleTaskOperationFailure(result);
       taskListView.render();
       calendarView.render();
     } catch (error) {
@@ -155,7 +167,7 @@ taskListView = createTaskListView({
   onDeleteTask: (task) => {
     const result = taskCollection.remove(task.id);
     if (editingTaskId === task.id) resetTaskForm();
-    if (!result.ok && result.error) lockStorage(result.error);
+    if (!result.ok) handleTaskOperationFailure(result);
     taskListView.render();
     calendarView.render();
   },
