@@ -303,7 +303,6 @@ GitHub connector به فایل‌ها و VS Code محلی دسترسی مستق�
 - والد مستقیم آن: `b9fba06f7d3fb67f1ff5ea38435228a009dae215`
 - آخرین commit کد پیش از آن: `fix(storage): reject malformed schema envelopes as invalid data`؛ تغییر در `src/infrastructure/storage/local-task-storage.js`.
 - commit ایجاد همین Checkpoint: `68fe3eb8c5d7db3e854df2685349671ed950a945`؛ والد آن `6166658...` است و فقط این سند را اضافه کرده است.
-- HEAD فعلی شاخه پس از ثبت سند: `2a2410eb78046ccfea976a565537cc3cb420ca60`.
 - HEAD شاخهٔ `main` در زمان بررسی: `2acdec83d4725baeacaea455437f425351e2733a`.
 - مقایسهٔ `main` با `foundation/architecture-v0-5` نشان می‌دهد شاخهٔ توسعه ۸۸ commit جلوتر و صفر commit عقب‌تر است. `main` تغییر داده نشده است.
 - commit مربوط به حرکت روز قبل/بعد با SHA `2acdec83...`، HEAD شاخهٔ `main` و ancestor شاخهٔ توسعه است؛ در کد فعلی شاخهٔ توسعه منطق حرکت روز در `src/presentation/calendar/calendar-view.js` قرار دارد، نه در `app.js`.
@@ -324,7 +323,7 @@ GitHub connector به فایل‌ها و VS Code محلی دسترسی مستق�
 ### آزمون‌های لازم در بررسی سلامت بعدی
 
 - تست کامل فعلی با `npm.cmd test`
-- تست روز قبل/بعد، عبور از مرز ماه و سال شمسی
+- تست روز قبل/بعد، عبور از مرز ماه و سال شمسی؛ در فهرست فعلی تست‌ها، تست اختصاصی برای `calendar-view.js` مشاهده نشد.
 - تست انتخاب روز و فیلتر فهرست
 - تست persistence پس از Refresh
 - تست ساخت/ویرایش/حذف/تغییر وضعیت
