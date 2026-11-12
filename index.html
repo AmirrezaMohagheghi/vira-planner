@@ -82,7 +82,12 @@
               </div>
               <div class="form-field">
                 <label for="task-time">ساعت</label>
-                <input id="task-time" type="text" inputmode="numeric" dir="ltr" placeholder="__:__" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="چهار رقم ساعت و دقیقه را وارد کن؛ دونقطه خودکار اضافه می‌شود.">
+                <div class="time-picker" dir="ltr">
+                  <input id="task-time-hour" class="time-part" type="number" min="0" max="23" step="1" inputmode="numeric" placeholder="HH" aria-label="ساعت، از ۰ تا ۲۳">
+                  <span class="time-separator" aria-hidden="true">:</span>
+                  <input id="task-time-minute" class="time-part" type="number" min="0" max="59" step="1" inputmode="numeric" placeholder="MM" aria-label="دقیقه، از ۰ تا ۵۹">
+                </div>
+                <input id="task-time" type="hidden">
               </div>
               <div class="form-field">
                 <label for="task-priority">اولویت</label>
