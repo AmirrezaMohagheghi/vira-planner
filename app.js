@@ -1,8 +1,13 @@
 import { createTaskCollection } from "./src/application/tasks/task-collection.js";
 import {
-  loadTasks,
-  saveTasks
+  loadTasks as loadStoredTasks,
+  saveTasks as saveStoredTasks,
+  migrateLegacyTasks
 } from "./src/infrastructure/storage/local-task-storage.js";
+import {
+  fromLegacyTasks,
+  toLegacyTasks
+} from "./src/application/tasks/legacy-task-adapter.js";
 import {
   isoToDate,
   formatJalaliDate,
@@ -34,9 +39,19 @@ const storageWarning = document.querySelector("#storage-warning");
 
 const persianNumber = new Intl.NumberFormat("fa-IR");
 
+function loadTasksForCollection() {
+  const canonicalTasks = fromLegacyTasks(loadStoredTasks());
+  migrateLegacyTasks(canonicalTasks);
+  return toLegacyTasks(canonicalTasks);
+}
+
+function saveTasksFromCollection(tasks) {
+  saveStoredTasks(fromLegacyTasks(tasks));
+}
+
 const taskCollection = createTaskCollection({
-  loadTasks,
-  saveTasks
+  loadTasks: loadTasksForCollection,
+  saveTasks: saveTasksFromCollection
 });
 
 function lockStorage(error) {
