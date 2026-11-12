@@ -736,6 +736,7 @@ SHAهای زیر از تاریخچهٔ کاری ثبت‌شده‌اند؛ بر�
 - **محدودهٔ نسخهٔ اولیهٔ پیشنهادی:** روزانه، روزهای مشخص هفته، هر N روز/هفته، ماهانه و پایان تکرار؛ الگوهای پیچیده‌تر (مثل چند قاعدهٔ ترکیبی، تقویم‌های تعطیلات، و استثناهای پیشرفته) به بعد موکول شوند. هر occurrence باید هویت مستقل داشته باشد تا تکمیل یا تغییر یک نوبت، الگوی مادر را ناخواسته تغییر ندهد.
 - **منابع رسمی:** Todoist recurring dates https://www.todoist.com/help/todoist/features/introduction-to-recurring-dates-YUYVJJAV ؛ Motion recurring cadences https://www.usemotion.com/help/project-management/task/reference-tasks/recurring-task-cadences ؛ Motion missed recurrence FAQ https://www.usemotion.com/help/project-management/task/task-scheduling-faq ؛ Motion custom scheduling https://www.usemotion.com/help/time-management/auto-scheduling/auto-scheduling-how-to-guide .
 - **وضعیت تصمیم:** بررسی رقبا و پیشنهاد ثبت شد؛ منتظر تأیید/اصلاح کاربر هستیم. هیچ کدی تغییر نکرده است.
+- **تأیید کاربر دربارهٔ مبنای تکرار وظیفه:** هر وظیفهٔ تکرارشونده باید بتواند بین دو مبنا انتخاب کند: (۱) تقویم‌محور، occurrence بعدی از الگوی اصلی/تاریخ برنامه‌ریزی‌شده محاسبه شود، حتی اگر نوبت قبلی دیر انجام شده باشد؛ (۲) تکمیل‌محور، occurrence بعدی از تاریخ تکمیل واقعی نوبت قبلی محاسبه شود. این انتخاب متعلق به recurrence rule است و با تعهد ثابت یا هدف منعطف هفتگی یکی نیست.
 
 ### 2026-11-12 — تأیید تست‌های تقویم در سیستم محلی کاربر
 
