@@ -5,14 +5,53 @@ const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
 const taskDate = document.querySelector("#task-date");
 const taskTime = document.querySelector("#task-time");
+const taskTimeHour = document.querySelector("#task-time-hour");
+const taskTimeMinute = document.querySelector("#task-time-minute");
 
-taskTime.addEventListener("input", () => {
-  const digits = taskTime.value.replace(/\\D/g, "").slice(0, 4);
-  const formatted = digits.length > 2
-    ? `${digits.slice(0, 2)}:${digits.slice(2)}`
-    : digits;
-  taskTime.value = formatted;
-});
+function updateTaskTimeValue() {
+  const hourEmpty = taskTimeHour.value === "";
+  const minuteEmpty = taskTimeMinute.value === "";
+  taskTimeHour.setCustomValidity("");
+  taskTimeMinute.setCustomValidity("");
+
+  if (hourEmpty && minuteEmpty) {
+    taskTime.value = "";
+    return;
+  }
+  if (hourEmpty || minuteEmpty) {
+    const message = "برای واردکردن ساعت، ساعت و دقیقه را هر دو مشخص کن.";
+    taskTimeHour.setCustomValidity(message);
+    taskTimeMinute.setCustomValidity(message);
+    taskTime.value = "";
+    return;
+  }
+
+  const hour = Number(taskTimeHour.value);
+  const minute = Number(taskTimeMinute.value);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+    taskTimeHour.setCustomValidity("ساعت باید بین ۰ تا ۲۳ باشد.");
+  }
+  if (!Number.isInteger(minute) || minute < 0 || minute > 59) {
+    taskTimeMinute.setCustomValidity("دقیقه باید بین ۰ تا ۵۹ باشد.");
+  }
+
+  taskTime.value =
+    taskTimeHour.validationMessage || taskTimeMinute.validationMessage
+      ? ""
+      : `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function setTaskTimeParts(value) {
+  const [hour = "", minute = ""] = (value || "").split(":");
+  taskTimeHour.value = hour === "" ? "" : String(Number(hour));
+  taskTimeMinute.value = minute === "" ? "" : String(Number(minute));
+  updateTaskTimeValue();
+}
+
+taskTimeHour.addEventListener("input", updateTaskTimeValue);
+taskTimeMinute.addEventListener("input", updateTaskTimeValue);
+taskTimeHour.addEventListener("change", updateTaskTimeValue);
+taskTimeMinute.addEventListener("change", updateTaskTimeValue);
 const taskPriority = document.querySelector("#task-priority");
 const taskCategory = document.querySelector("#task-category");
 const submitTaskButton = document.querySelector("#submit-task");
@@ -184,7 +223,7 @@ function startEditingTask(task) {
   editingTaskId = task.id;
   taskInput.value = task.title;
   taskDate.value = task.date || "";
-  taskTime.value = task.time || "";
+  setTaskTimeParts(task.time || "");
   taskPriority.value = task.priority || "medium";
   taskCategory.value = task.category || "personal";
   submitTaskButton.textContent = "ذخیرهٔ تغییرات";
