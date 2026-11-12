@@ -104,6 +104,7 @@ test("restores saved tasks and locks further changes after a persistence failure
   const result = collection.create({ title: "ذخیره‌نشده" });
 
   assert.equal(result.ok, false);
+  assert.equal(result.kind, "storage");
   assert.match(result.error.message, /write blocked/);
   assert.deepEqual(collection.getTasks(), initial);
   assert.equal(collection.isStorageReady(), false);
@@ -136,9 +137,41 @@ test("does not change the collection when task validation fails", () => {
     }
   });
 
-  assert.throws(() => collection.create({ title: "" }), /invalid task/);
+  const result = collection.create({ title: "" });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.kind, "validation");
+  assert.match(result.error.message, /invalid task/);
   assert.deepEqual(collection.getTasks(), initial);
   assert.deepEqual(store.readStoredTasks(), initial);
+});
+
+test("returns a validation failure when updating a task is invalid", () => {
+  const initial = [{ id: "task-1", title: "کار قبلی" }];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store, {
+    updateTask() {
+      throw new Error("invalid update");
+    }
+  });
+
+  const result = collection.update("task-1", { title: "" });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.kind, "validation");
+  assert.match(result.error.message, /invalid update/);
+  assert.deepEqual(collection.getTasks(), initial);
+  assert.deepEqual(store.readStoredTasks(), initial);
+});
+
+test("returns a not-found result when updating an unknown task", () => {
+  const store = createMemoryStore();
+  const collection = createCollection(store);
+
+  assert.deepEqual(collection.update("missing", { title: "عنوان" }), {
+    ok: false,
+    kind: "not-found"
+  });
 });
 
 test("returns a snapshot that cannot mutate the internal collection", () => {
