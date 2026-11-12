@@ -1,5 +1,9 @@
 import { createTaskCollection } from "./src/application/tasks/task-collection.js";
 import {
+  loadTasks,
+  saveTasks
+} from "./src/infrastructure/storage/local-task-storage.js";
+import {
   isoToDate,
   formatJalaliDate,
   formatTodayDate
@@ -30,7 +34,10 @@ const storageWarning = document.querySelector("#storage-warning");
 
 const persianNumber = new Intl.NumberFormat("fa-IR");
 
-const taskCollection = createTaskCollection();
+const taskCollection = createTaskCollection({
+  loadTasks,
+  saveTasks
+});
 
 function lockStorage(error) {
   storageWarning.hidden = false;
