@@ -68,6 +68,13 @@ export function validateTask(task) {
   if (!Number.isInteger(task.progress) || task.progress < 0 || task.progress > 100) {
     throw new TypeError("Task progress must be an integer between 0 and 100.");
   }
+  if (
+    (task.status === "todo" && task.progress !== 0) ||
+    (task.status === "in_progress" && (task.progress < 1 || task.progress > 99)) ||
+    (task.status === "completed" && task.progress !== 100)
+  ) {
+    throw new TypeError("Task status and progress are inconsistent.");
+  }
   if (!Array.isArray(task.dependencyIds) ||
       !task.dependencyIds.every((id) => typeof id === "string")) {
     throw new TypeError("Task dependencyIds must be an array of strings.");
@@ -96,7 +103,13 @@ export function createTask(input, options = {}) {
   const now = options.now ?? new Date().toISOString();
   const isLegacyDone = input.done === true;
   const status = input.status ?? (isLegacyDone ? "completed" : "todo");
-  const progress = input.progress ?? (status === "completed" ? 100 : 0);
+  const defaultProgressByStatus = {
+    todo: 0,
+    in_progress: 1,
+    completed: 100,
+    cancelled: 0
+  };
+  const progress = input.progress ?? defaultProgressByStatus[status];
 
   const task = {
     id: input.id ?? options.id ?? crypto.randomUUID(),
@@ -127,11 +140,24 @@ export function createTask(input, options = {}) {
 export function updateTask(task, changes, options = {}) {
   const now = options.now ?? new Date().toISOString();
   const updated = { ...task, ...changes, updatedAt: now };
-  if (changes.status === "completed" && changes.progress === undefined) {
-    updated.progress = 100;
+
+  if (changes.status !== undefined && changes.progress === undefined) {
+    if (changes.status === "todo") {
+      updated.progress = 0;
+    } else if (changes.status === "completed") {
+      updated.progress = 100;
+    } else if (changes.status === "in_progress" &&
+        (task.progress === 0 || task.progress === 100)) {
+      updated.progress = 1;
+    }
   } else if (changes.progress !== undefined && changes.status === undefined) {
-    updated.status = changes.progress === 100 ? "completed" : "in_progress";
+    updated.status = changes.progress === 0
+      ? "todo"
+      : changes.progress === 100
+        ? "completed"
+        : "in_progress";
   }
+
   return validateTask(updated);
 }
 
