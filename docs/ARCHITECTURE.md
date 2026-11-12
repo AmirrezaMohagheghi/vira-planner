@@ -647,3 +647,81 @@ Use caseهایی مانند حذف Project، اتصال Document به Task یا 
 8. پس از موفقیت معیارهای پذیرش، انتقال مرحله‌ای رابط و قابلیت‌ها.
 
 هیچ‌یک از مراحل بالا به‌معنی شروع پیاده‌سازی کامل desktop در این تغییر مستنداتی نیست.
+
+---
+
+## ۱۹. ممیزی اولیهٔ کد و ارزیابی گزینه‌های Desktop — 2026-11-12
+
+### ۱۹.۱ شواهد ممیزی مخزن فعلی
+
+ممیزی read-only روی شاخهٔ توسعه انجام شد. فایل‌های اجرایی تغییر نکردند.
+
+- `package.json` فقط اسکریپت `node --test` دارد و در حال حاضر dependency خارجی npm تعریف نکرده است.
+- ورودی رابط `index.html` است و `app.js` به‌عنوان ES module بارگذاری می‌شود.
+- `app.js` مستقیماً از `document.querySelector`، event listenerها و `scrollIntoView` استفاده می‌کند.
+- ماژول‌های Presentation برای ساخت عناصر رابط از `document.createElement` استفاده می‌کنند؛ بنابراین UI فعلی به DOM وابسته است.
+- `src/infrastructure/storage/local-task-storage.js` به‌طور پیش‌فرض `globalThis.localStorage` را دریافت می‌کند؛ ذخیره‌سازی فعلی browser storage است.
+- در فایل‌های بررسی‌شدهٔ Domain و Application، وابستگی مستقیم به APIهای مرورگر مشاهده نشد؛ این نشانهٔ خوبی برای حفظ منطق اصلی است، اما ممیزی کامل تمام مسیرهای اجرا و وابستگی‌های ضمنی هنوز انجام نشده است.
+- ساختار فعلی به‌صورت سادهٔ HTML/CSS/JavaScript ماژولار است و framework بزرگ frontend یا package dependency خارجی ندارد.
+
+### ۱۹.۲ نتیجهٔ معماری از ممیزی
+
+1. UI موجود را می‌توان در یک WebView دسکتاپ نمایش داد؛ لازم نیست به‌خاطر desktop شدن فوراً UI را از نو نوشت.
+2. وابستگی DOM در Presentation طبیعی است و می‌تواند در WebView ادامه پیدا کند؛ اما دسترسی به فایل‌های سیستم‌عامل، اعلان native، credential store و database باید از طریق bridge/adapter محدود و قابل‌آزمون انجام شود.
+3. بزرگ‌ترین مرز فنی که باید جدا شود، storage است: Application باید با قرارداد Repository کار کند و پیاده‌سازی فعلی LocalStorage فقط adapter نمونهٔ اولیه باقی بماند.
+4. نباید APIهای native را مستقیماً در منطق Domain یا use caseها پخش کنیم.
+5. پیش از افزودن shell، باید یک بررسی دقیق‌تر از همهٔ استفاده‌های browser API و رفتار ذخیره‌سازی در تست‌ها انجام شود.
+
+### ۱۹.۳ مقایسهٔ مقدماتی Desktop Shell
+
+| معیار | Tauri 2 | Electron |
+|---|---|---|
+| رابط فعلی | HTML/CSS/JS موجود در WebView قابل استفاده است | HTML/CSS/JS موجود در Chromium قابل استفاده است |
+| موتور نمایش در Windows | Microsoft Edge WebView2 سیستم | Chromium همراه Electron |
+| منطق سمت میزبان | Rust و APIهای Tauri | Node.js و Electron APIs |
+| پیش‌نیاز توسعه Windows | Rust و Microsoft C++ Build Tools؛ WebView2 | Node.js و ابزارهای build/package |
+| حداقل پشتیبانی اعلام‌شده | مستندات فعلی Tauri، Windows 7+؛ WebView2 در Windows 10 نسخهٔ 1803+ موجود است | مستندات Electron فعلی، Windows 10+ |
+| اندازه/مصرف | معمولاً نامزد سبک‌تر به‌دلیل استفاده از WebView سیستم؛ باید در خروجی واقعی اندازه‌گیری شود | Chromium و Node همراه برنامه بسته‌بندی می‌شوند؛ footprint واقعی باید اندازه‌گیری شود |
+| سطح امنیت | permission/capabilityهای Tauri به‌صورت پیش‌فرض محدودند؛ scope فایل باید صریح باشد | نیازمند جداسازی main/renderer، context isolation، محدودکردن Node integration و preload API |
+| هزینهٔ یادگیری در این پروژه | نیازمند آشنایی پایه با Rust و تنظیمات native | مسیر یک‌دست‌تر با JavaScript/Node برای توسعه‌دهندهٔ فعلی |
+| Installer | MSI و NSIS پشتیبانی می‌شوند؛ رفتار WebView2 باید انتخاب شود | ابزارهای بسته‌بندی جداگانه لازم‌اند؛ باید installer و update workflow انتخاب شود |
+
+منابع رسمی بررسی‌شده:
+- Tauri prerequisites و Windows installer: https://v2.tauri.app/start/prerequisites/ و https://v2.tauri.app/distribute/windows-installer/
+- Electron platform support: https://github.com/electron/electron
+- Tauri filesystem permissions: https://v2.tauri.app/plugin/file-system/
+
+### ۱۹.۴ ارزیابی مقدماتی و تصمیم باز
+
+- **Tauri 2 نامزد اول برای proof of concept است** چون UI فعلی با WebView سازگار است و می‌توان منطق رابط را حفظ کرد؛ اما نیاز به Rust و ابزارهای native هزینهٔ یادگیری و راه‌اندازی دارد.
+- **Electron گزینهٔ جایگزین جدی است** چون برای کاربر JavaScript/Node محور، مسیر توسعه احتمالاً ساده‌تر است؛ اما Chromium و Node همراه برنامه می‌آیند و باید اندازهٔ نصب، مصرف منابع و سطح دسترسی main/renderer سنجیده شود.
+- هنوز هیچ‌کدام انتخاب نهایی نیستند. معیار تعیین‌کننده باید یک نمونهٔ واقعی روی Windows هدف باشد، نه صرفاً شهرت یا ادعای سبک‌بودن یک فناوری.
+- پیش از تصمیم، نسخه/build دقیق Windows 10 دستگاه توسعه و حداقل سیستم‌عامل هدف انتشار باید مشخص شود. اگر قرار است Windows 10 قدیمی‌تر از 1803 پشتیبانی شود، فرض پیش‌فرض WebView2 نصب‌شده برای Tauri کافی نیست و installer باید runtime را مدیریت کند.
+
+### ۱۹.۵ ارزیابی مقدماتی SQLite
+
+SQLite نامزد اصلی storage محلی رابطه‌ای باقی می‌ماند، زیرا:
+- transactionهای ACID و rollback را پشتیبانی می‌کند؛
+- چند reader هم‌زمان را می‌پذیرد و writeها را به‌صورت سریالی مدیریت می‌کند؛
+- Online Backup API برای ساخت snapshot از دیتابیس فعال دارد؛
+- WAL می‌تواند هم‌زمانی reader و writer را بهتر کند، اما خود WAL هم فایل و قواعد checkpoint/recovery دارد و برای فایل‌سیستم شبکه‌ای مناسب نیست.
+
+نکتهٔ نگهداری مهم: مستندات رسمی SQLite یک اشکال نادر WAL را گزارش کرده‌اند که در SQLite 3.51.3 و نسخه‌های بعدی رفع شده است. اگر WAL انتخاب شود، نسخهٔ SQLite باید pin و بررسی شود و صرفاً به نسخهٔ پیش‌فرض یک dependency ناشناخته اعتماد نکنیم.
+
+منابع رسمی:
+- https://www.sqlite.org/transactional.html
+- https://www.sqlite.org/lang_transaction.html
+- https://www.sqlite.org/backup.html
+- https://www.sqlite.org/wal.html
+
+**وضعیت:** SQLite گزینهٔ ترجیحی برای prototype storage است، نه مجوز مهاجرت فوری. انتخاب driver/bridge، رمزنگاری، مسیر فایل، backup و migration باید در طراحی بعدی تثبیت شوند.
+
+### ۱۹.۶ گام بعدی فنی
+
+1. تعیین نسخهٔ دقیق Windows 10 دستگاه توسعه و نسخهٔ حداقلی هدف.
+2. طراحی یک proof of concept بسیار کوچک و جدا از قابلیت‌های اصلی: پنجرهٔ مستقل، ذخیرهٔ یک رکورد در SQLite، بستن/بازکردن برنامه و بازیابی رکورد.
+3. ساخت همان سناریوی حداقلی با Tauri و Electron یا دست‌کم نمونهٔ قابل‌اندازه‌گیری برای هر دو.
+4. مقایسهٔ installer size، زمان اجرا، RAM پس از بازشدن، سهولت build روی دستگاه واقعی و مسیر backup.
+5. انتخاب shell و storage فقط پس از نتیجهٔ آزمون و ثبت ADR.
+
+تا پیش از این آزمون، migration یا تغییر گستردهٔ کد انجام نمی‌شود.
