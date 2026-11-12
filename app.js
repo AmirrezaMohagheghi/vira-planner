@@ -8,6 +8,7 @@ import {
 import { createCalendarView } from "./src/presentation/calendar/calendar-view.js";
 import { createTaskListView } from "./src/presentation/tasks/task-list-view.js";
 import { createTaskTimeInput } from "./src/presentation/tasks/task-time-input.js";
+import { createTaskFormView } from "./src/presentation/tasks/task-form-view.js";
 
 const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
@@ -85,40 +86,32 @@ function showToday() {
   document.querySelector("#today-date").textContent = formatTodayDate();
 }
 
+const taskFormView = createTaskFormView({
+  form: taskForm,
+  titleInput: taskInput,
+  dateInput: taskDate,
+  priorityInput: taskPriority,
+  categoryInput: taskCategory,
+  submitButton: submitTaskButton,
+  cancelButton: cancelEditButton,
+  taskTimeInput
+});
+
 function resetTaskForm() {
-  taskForm.reset();
-  taskTimeInput.clear();
   editingTaskId = null;
-  submitTaskButton.textContent = "افزودن کار";
-  cancelEditButton.hidden = true;
+  taskFormView.reset();
 }
 
 function startEditingTask(task) {
   editingTaskId = task.id;
-  taskInput.value = task.title;
-  taskDate.value = task.date || "";
-  taskTimeInput.setValue(task.time || "");
-  taskPriority.value = task.priority || "medium";
-  taskCategory.value = task.category || "personal";
-  submitTaskButton.textContent = "ذخیرهٔ تغییرات";
-  cancelEditButton.hidden = false;
-  taskForm.scrollIntoView({ behavior: "smooth", block: "center" });
-  taskInput.focus();
+  taskFormView.startEditing(task);
 }
 
 taskForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!storageReady) return;
-  const title = taskInput.value.trim();
-  if (!title) return;
-
-  const taskDetails = {
-    title,
-    date: taskDate.value,
-    time: taskTimeInput.getValue(),
-    priority: taskPriority.value,
-    category: taskCategory.value
-  };
+  const taskDetails = taskFormView.getValues();
+  if (!taskDetails.title) return;
 
   try {
     if (editingTaskId) {
