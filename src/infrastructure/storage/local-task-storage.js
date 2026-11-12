@@ -107,6 +107,13 @@ function parseSavedValue(raw) {
     );
   }
 
+  if (!Number.isInteger(parsed.schemaVersion) || parsed.schemaVersion < 1) {
+    throw new TaskStorageError(
+      "INVALID_DATA",
+      "ساختار ذخیره‌سازی فاقد شمارهٔ نسخهٔ معتبر است؛ دادهٔ اصلی دست‌نخورده باقی ماند."
+    );
+  }
+
   if (parsed.schemaVersion !== SCHEMA_VERSION) {
     throw new TaskStorageError(
       "UNSUPPORTED_SCHEMA_VERSION",
