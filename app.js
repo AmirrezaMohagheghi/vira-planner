@@ -7,6 +7,7 @@ import {
 } from "./src/domain/calendar/jalali-calendar.js";
 import { createCalendarView } from "./src/presentation/calendar/calendar-view.js";
 import { createTaskListView } from "./src/presentation/tasks/task-list-view.js";
+import { createTaskTimeInput } from "./src/presentation/tasks/task-time-input.js";
 
 const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
@@ -15,50 +16,11 @@ const taskTime = document.querySelector("#task-time");
 const taskTimeHour = document.querySelector("#task-time-hour");
 const taskTimeMinute = document.querySelector("#task-time-minute");
 
-function updateTaskTimeValue() {
-  const hourEmpty = taskTimeHour.value === "";
-  const minuteEmpty = taskTimeMinute.value === "";
-  taskTimeHour.setCustomValidity("");
-  taskTimeMinute.setCustomValidity("");
-
-  if (hourEmpty && minuteEmpty) {
-    taskTime.value = "";
-    return;
-  }
-  if (hourEmpty || minuteEmpty) {
-    const message = "برای واردکردن ساعت، ساعت و دقیقه را هر دو مشخص کن.";
-    taskTimeHour.setCustomValidity(message);
-    taskTimeMinute.setCustomValidity(message);
-    taskTime.value = "";
-    return;
-  }
-
-  const hour = Number(taskTimeHour.value);
-  const minute = Number(taskTimeMinute.value);
-  if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
-    taskTimeHour.setCustomValidity("ساعت باید بین ۰ تا ۲۳ باشد.");
-  }
-  if (!Number.isInteger(minute) || minute < 0 || minute > 59) {
-    taskTimeMinute.setCustomValidity("دقیقه باید بین ۰ تا ۵۹ باشد.");
-  }
-
-  taskTime.value =
-    taskTimeHour.validationMessage || taskTimeMinute.validationMessage
-      ? ""
-      : `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
-function setTaskTimeParts(value) {
-  const [hour = "", minute = ""] = (value || "").split(":");
-  taskTimeHour.value = hour === "" ? "" : String(Number(hour));
-  taskTimeMinute.value = minute === "" ? "" : String(Number(minute));
-  updateTaskTimeValue();
-}
-
-taskTimeHour.addEventListener("input", updateTaskTimeValue);
-taskTimeMinute.addEventListener("input", updateTaskTimeValue);
-taskTimeHour.addEventListener("change", updateTaskTimeValue);
-taskTimeMinute.addEventListener("change", updateTaskTimeValue);
+const taskTimeInput = createTaskTimeInput({
+  hourInput: taskTimeHour,
+  minuteInput: taskTimeMinute,
+  timeInput: taskTime
+});
 const taskPriority = document.querySelector("#task-priority");
 const taskCategory = document.querySelector("#task-category");
 const submitTaskButton = document.querySelector("#submit-task");
@@ -125,9 +87,7 @@ function showToday() {
 
 function resetTaskForm() {
   taskForm.reset();
-  taskTimeHour.setCustomValidity("");
-  taskTimeMinute.setCustomValidity("");
-  taskTime.value = "";
+  taskTimeInput.clear();
   editingTaskId = null;
   submitTaskButton.textContent = "افزودن کار";
   cancelEditButton.hidden = true;
@@ -137,7 +97,7 @@ function startEditingTask(task) {
   editingTaskId = task.id;
   taskInput.value = task.title;
   taskDate.value = task.date || "";
-  setTaskTimeParts(task.time || "");
+  taskTimeInput.setValue(task.time || "");
   taskPriority.value = task.priority || "medium";
   taskCategory.value = task.category || "personal";
   submitTaskButton.textContent = "ذخیرهٔ تغییرات";
@@ -155,7 +115,7 @@ taskForm.addEventListener("submit", (event) => {
   const taskDetails = {
     title,
     date: taskDate.value,
-    time: taskTime.value,
+    time: taskTimeInput.getValue(),
     priority: taskPriority.value,
     category: taskCategory.value
   };
