@@ -166,8 +166,11 @@ taskListView = createTaskListView({
   onEditTask: startEditingTask,
   onDeleteTask: (task) => {
     const result = taskCollection.remove(task.id);
-    if (editingTaskId === task.id) resetTaskForm();
-    if (!result.ok) handleTaskOperationFailure(result);
+    if (!result.ok) {
+      handleTaskOperationFailure(result);
+    } else if (editingTaskId === task.id) {
+      resetTaskForm();
+    }
     taskListView.render();
     calendarView.render();
   },
