@@ -125,3 +125,16 @@ test("does not change the collection when task validation fails", () => {
   assert.deepEqual(collection.getTasks(), initial);
   assert.deepEqual(store.readStoredTasks(), initial);
 });
+
+test("returns a snapshot that cannot mutate the internal collection", () => {
+  const initial = [{ id: "task-1", title: "عنوان اصلی" }];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store);
+
+  const snapshot = collection.getTasks();
+  snapshot[0].title = "عنوان دست‌کاری‌شده";
+  snapshot.push({ id: "task-2", title: "وظیفهٔ جعلی" });
+
+  assert.deepEqual(collection.getTasks(), initial);
+  assert.deepEqual(store.readStoredTasks(), initial);
+});
