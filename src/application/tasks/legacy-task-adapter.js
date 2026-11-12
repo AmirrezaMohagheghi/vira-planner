@@ -1,4 +1,4 @@
-import { createTask, validateTask } from "./task.js";
+import { createTask, validateTask } from "../../domain/tasks/task.js";
 
 function emptyToNull(value) {
   return value === "" || value === undefined ? null : value;
