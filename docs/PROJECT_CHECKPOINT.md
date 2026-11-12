@@ -295,16 +295,24 @@ GitHub connector به فایل‌ها و VS Code محلی دسترسی مستق�
 
 این بررسی، Backup/Restore، خرابی مرورگر، چند تب، quota و همهٔ سناریوهای خطا را پوشش نمی‌دهد.
 
-### وضعیت آخرین commit قابل مشاهده در این بررسی
+### وضعیت شاخه در زمان ثبت این Checkpoint
 
-- آخرین commit شاخه: `2acdec83d4725baeacaea455437f425351e2733a`
-- عنوان: `Implement previous and next day navigation`
-- تاریخ ثبت‌شده در GitHub: 2026-11-11
-- تغییر قابل مشاهده: اضافه‌شدن منطق حرکت روز قبل/بعد در `app.js` و اتصال دکمه‌ها.
-- Combined commit statuses: فهرست status خالی برگشت.
-- Workflow runs برای commit: فهرست خالی برگشت.
+- HEAD شاخهٔ توسعه پیش از ایجاد این سند: `6166658232e3d31e22283a59d513358eade93ea9`
+- عنوان: `docs: refine product requirements with competitive review`
+- این commit فقط `docs/PRODUCT_SPEC.md` را تغییر داده است؛ بنابراین آخرین commit کد نیست.
+- والد مستقیم آن: `b9fba06f7d3fb67f1ff5ea38435228a009dae215`
+- آخرین commit کد پیش از آن: `fix(storage): reject malformed schema envelopes as invalid data`؛ تغییر در `src/infrastructure/storage/local-task-storage.js`.
+- commit ایجاد همین Checkpoint: `68fe3eb8c5d7db3e854df2685349671ed950a945`؛ والد آن `6166658...` است و فقط این سند را اضافه کرده است.
+- HEAD فعلی شاخه پس از ثبت سند: `2a2410eb78046ccfea976a565537cc3cb420ca60`.
+- HEAD شاخهٔ `main` در زمان بررسی: `2acdec83d4725baeacaea455437f425351e2733a`.
+- مقایسهٔ `main` با `foundation/architecture-v0-5` نشان می‌دهد شاخهٔ توسعه ۸۸ commit جلوتر و صفر commit عقب‌تر است. `main` تغییر داده نشده است.
+- commit مربوط به حرکت روز قبل/بعد با SHA `2acdec83...`، HEAD شاخهٔ `main` و ancestor شاخهٔ توسعه است؛ در کد فعلی شاخهٔ توسعه منطق حرکت روز در `src/presentation/calendar/calendar-view.js` قرار دارد، نه در `app.js`.
+- Combined commit statuses برای commit کد `b9fba06...`، commit اسناد `6166658...` و commit Checkpoint خالی برگشت.
+- Workflow runs برای این commitها نیز در پاسخ connector خالی بود.
+- فهرست Issues و Pull Requests باز در زمان بررسی خالی برگشت.
+- در ریشهٔ شاخه، پوشهٔ `.github/workflows` پیدا نشد؛ این مشاهده به‌تنهایی تمام تنظیمات احتمالی CI را رد نمی‌کند.
 
-**تفسیر:** در بررسی فعلی، status یا workflow run قابل مشاهده‌ای گزارش نشد. این به‌تنهایی اثبات نمی‌کند که کد خراب است یا سالم؛ فقط CI موفق/ناموفق از این پاسخ قابل تأیید نیست. اجرای تست محلی روی آخرین commit ضروری است.
+**تفسیر:** هیچ status یا workflow run قابل مشاهده‌ای برای commitهای بررسی‌شده گزارش نشد. این به‌تنهایی اثبات نمی‌کند که کد خراب است یا سالم؛ فقط CI موفق/ناموفق از این پاسخ قابل تأیید نیست. اجرای تست محلی روی آخرین commit کد ضروری است.
 
 ### وضعیت package.json
 
