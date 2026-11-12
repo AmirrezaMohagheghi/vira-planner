@@ -6,6 +6,7 @@ import {
   formatTodayDate
 } from "./src/domain/calendar/jalali-calendar.js";
 import { createCalendarView } from "./src/presentation/calendar/calendar-view.js";
+import { createTaskListView } from "./src/presentation/tasks/task-list-view.js";
 
 const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
@@ -62,21 +63,8 @@ const taskPriority = document.querySelector("#task-priority");
 const taskCategory = document.querySelector("#task-category");
 const submitTaskButton = document.querySelector("#submit-task");
 const cancelEditButton = document.querySelector("#cancel-edit");
-const taskList = document.querySelector("#task-list");
-const totalCount = document.querySelector("#total-count");
-const doneCount = document.querySelector("#done-count");
-const leftCount = document.querySelector("#left-count");
-const progressRing = document.querySelector("#progress-ring");
-const progressPercent = document.querySelector("#progress-percent");
-const progressCaption = document.querySelector("#progress-caption");
 const focusButton = document.querySelector("#focus-button");
 const storageWarning = document.querySelector("#storage-warning");
-
-const priorityLabels = { high: "زیاد", medium: "متوسط", low: "کم" };
-const categoryLabels = {
-  personal: "شخصی", study: "درس و مطالعه", university: "دانشگاه",
-  work: "کار", worship: "عبادت", other: "سایر"
-};
 
 const persianNumber = new Intl.NumberFormat("fa-IR");
 
@@ -104,7 +92,7 @@ function persistTasks() {
       error = readError;
     }
     lockStorage(error);
-    renderTasks();
+    taskListView.render();
     calendarView.render();
     storageWarning.textContent =
       `ذخیره‌سازی انجام نشد؛ تغییر اخیر ثبت نشده است و امکانات ویرایش تا بررسی حافظه غیرفعال شدند. ${error.message}`;
@@ -120,6 +108,7 @@ try {
 let editingTaskId = null;
 let selectedDate = null;
 let calendarView;
+let taskListView;
 
 function toPersianDigits(value) {
   return persianNumber.format(value);
@@ -179,105 +168,6 @@ function startEditingTask(task) {
   taskInput.focus();
 }
 
-function createMetaChip(text, extraClass = "") {
-  const chip = document.createElement("span");
-  chip.className = `meta-chip ${extraClass}`.trim();
-  chip.textContent = text;
-  return chip;
-}
-
-function getVisibleTasks() {
-  return selectedDate
-    ? tasks.filter((task) => task.date === selectedDate)
-    : tasks;
-}
-
-function renderTasks() {
-  taskList.replaceChildren();
-  const visibleTasks = getVisibleTasks();
-
-  if (visibleTasks.length === 0) {
-    const empty = document.createElement("li");
-    empty.className = "empty-state";
-    empty.textContent = !storageReady
-      ? "اطلاعات وظایف در دسترس نیست؛ برای جلوگیری از نمایش اشتباه، فهرست خالی تلقی نمی‌شود."
-      : selectedDate
-        ? "برای این روز هنوز کاری ثبت نکردی. می‌تونی از فرم بالا یک کار اضافه کنی."
-        : "هنوز کاری ثبت نکردی. اولین قدم رو اضافه کن.";
-    taskList.append(empty);
-    updateProgress();
-    return;
-  }
-
-  visibleTasks.forEach((task) => {
-    const item = document.createElement("li");
-    item.className = `task-item${task.done ? " completed" : ""}`;
-
-    const checkbox = document.createElement("input");
-    checkbox.disabled = !storageReady;
-    checkbox.type = "checkbox";
-    checkbox.className = "task-check";
-    checkbox.checked = Boolean(task.done);
-    checkbox.setAttribute("aria-label", "تغییر وضعیت کار");
-    checkbox.addEventListener("change", () => {
-      try {
-        const updatedTask = updateTaskForUI(task, { done: checkbox.checked });
-        tasks = tasks.map((entry) => entry.id === task.id ? updatedTask : entry);
-        if (persistTasks()) renderTasks();
-      } catch (error) {
-        lockStorage(error);
-        renderTasks();
-      }
-    });
-
-    const main = document.createElement("div");
-    main.className = "task-main";
-    const label = document.createElement("span");
-    label.className = "task-text";
-    label.textContent = task.title;
-    main.append(label);
-
-    const meta = document.createElement("div");
-    meta.className = "task-meta";
-    if (task.date) meta.append(createMetaChip(`📅 ${formatTaskDate(task.date)}`));
-    if (task.time) meta.append(createMetaChip(`◷ ${task.time}`));
-    const priority = task.priority || "medium";
-    meta.append(createMetaChip(`اولویت: ${priorityLabels[priority] || "متوسط"}`, `priority-${priority}`));
-    const category = task.category || "personal";
-    meta.append(createMetaChip(categoryLabels[category] || "شخصی"));
-    main.append(meta);
-
-    const editButton = document.createElement("button");
-    editButton.disabled = !storageReady;
-    editButton.type = "button";
-    editButton.className = "edit-task";
-    editButton.textContent = "✎";
-    editButton.title = "ویرایش کار";
-    editButton.setAttribute("aria-label", `ویرایش ${task.title}`);
-    editButton.addEventListener("click", () => startEditingTask(task));
-
-    const removeButton = document.createElement("button");
-    removeButton.disabled = !storageReady;
-    removeButton.type = "button";
-    removeButton.className = "delete-task";
-    removeButton.textContent = "×";
-    removeButton.title = "حذف کار";
-    removeButton.setAttribute("aria-label", `حذف ${task.title}`);
-    removeButton.addEventListener("click", () => {
-      tasks = tasks.filter((entry) => entry.id !== task.id);
-      if (editingTaskId === task.id) resetTaskForm();
-      persistTasks();
-      renderTasks();
-      calendarView.render();
-    });
-
-    item.append(checkbox, main, editButton, removeButton);
-    taskList.append(item);
-  });
-
-  updateProgress();
-}
-
 taskForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!storageReady) return;
@@ -308,7 +198,7 @@ taskForm.addEventListener("submit", (event) => {
   }
 
   if (!persistTasks()) return;
-  renderTasks();
+  taskListView.render();
   calendarView.render();
   resetTaskForm();
   taskInput.focus();
@@ -318,6 +208,41 @@ cancelEditButton.addEventListener("click", resetTaskForm);
 focusButton.addEventListener("click", () => {
   taskInput.focus();
   document.querySelector("#tasks").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+taskListView = createTaskListView({
+  elements: {
+    taskList: document.querySelector("#task-list"),
+    totalCount: document.querySelector("#total-count"),
+    doneCount: document.querySelector("#done-count"),
+    leftCount: document.querySelector("#left-count"),
+    progressRing: document.querySelector("#progress-ring"),
+    progressPercent: document.querySelector("#progress-percent"),
+    progressCaption: document.querySelector("#progress-caption")
+  },
+  getTasks: () => tasks,
+  getSelectedDate: () => selectedDate,
+  isStorageReady: () => storageReady,
+  onToggleTask: (task, done) => {
+    try {
+      const updatedTask = updateTaskForUI(task, { done });
+      tasks = tasks.map((entry) => entry.id === task.id ? updatedTask : entry);
+      if (persistTasks()) taskListView.render();
+    } catch (error) {
+      lockStorage(error);
+      taskListView.render();
+    }
+  },
+  onEditTask: startEditingTask,
+  onDeleteTask: (task) => {
+    tasks = tasks.filter((entry) => entry.id !== task.id);
+    if (editingTaskId === task.id) resetTaskForm();
+    persistTasks();
+    taskListView.render();
+    calendarView.render();
+  },
+  formatTaskDate,
+  formatDigits: toPersianDigits
 });
 
 calendarView = createCalendarView({
@@ -338,15 +263,15 @@ calendarView = createCalendarView({
   getSelectedDate: () => selectedDate,
   onDateSelected: (date) => {
     selectedDate = date;
-    renderTasks();
+    taskListView.render();
   },
   onShowAllTasks: () => {
     selectedDate = null;
-    renderTasks();
+    taskListView.render();
   },
   formatDigits: toPersianDigits
 });
 
 showToday();
 calendarView.render();
-renderTasks();
+taskListView.render();
