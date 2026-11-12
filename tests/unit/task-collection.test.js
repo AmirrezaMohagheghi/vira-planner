@@ -27,6 +27,21 @@ function createCollection(store, overrides = {}) {
   });
 }
 
+test("requires explicit storage dependencies", () => {
+  assert.throws(
+    () => createTaskCollection(),
+    {
+      name: "TypeError",
+      message: "Task collection requires loadTasks and saveTasks functions."
+    }
+  );
+
+  assert.throws(
+    () => createTaskCollection({ loadTasks() { return []; } }),
+    /requires loadTasks and saveTasks functions/
+  );
+});
+
 test("loads the initial task collection", () => {
   const initial = [{ id: "task-1", title: "کار قبلی" }];
   const store = createMemoryStore(initial);
