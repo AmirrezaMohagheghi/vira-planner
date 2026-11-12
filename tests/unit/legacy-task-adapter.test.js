@@ -83,25 +83,71 @@ test("preserves all canonical fields when converting through the legacy shape", 
   assert.equal(storedShape.done, false);
 });
 
-test("canonical fields take precedence over legacy aliases", () => {
+test("canonical fields take precedence over legacy aliases in a complete mixed record", () => {
   const task = fromLegacyTask({
     id: "mixed-1",
     title: "ترکیبی",
     date: "2026-11-12",
-    plannedDate: "2026-11-13",
     time: "09:00",
-    startTime: "10:00",
     category: "old-category",
-    categoryId: "new-category",
     done: false,
+    description: null,
+    plannedDate: "2026-11-13",
+    startTime: "10:00",
+    endTime: null,
+    durationMinutes: null,
+    deadline: null,
+    priority: "medium",
+    categoryId: "new-category",
     status: "completed",
-    progress: 100
+    progress: 100,
+    dependencyIds: [],
+    parentTaskId: null,
+    recurrenceRuleId: null,
+    reminderIds: [],
+    createdAt: fixedNow,
+    updatedAt: fixedNow,
+    source: "user",
+    version: 1
   }, { now: fixedNow });
 
   assert.equal(task.plannedDate, "2026-11-13");
   assert.equal(task.startTime, "10:00");
   assert.equal(task.categoryId, "new-category");
   assert.equal(task.status, "completed");
+});
+
+test("rejects an incomplete canonical or mixed record instead of filling defaults", () => {
+  assert.throws(
+    () => fromLegacyTask({
+      id: "partial-1",
+      title: "داده ناقص",
+      plannedDate: "2026-11-13",
+      date: "2026-11-12"
+    }, { now: fixedNow }),
+    /Canonical task is incomplete/
+  );
+});
+
+test("preserves unrecognized metadata during legacy normalization and UI mapping", () => {
+  const task = fromLegacyTask({
+    id: "legacy-meta",
+    title: "دارای داده اضافه",
+    importedLabel: "source-file-A"
+  }, { now: fixedNow });
+
+  assert.equal(task.importedLabel, "source-file-A");
+  assert.equal(toLegacyTask(task).importedLabel, "source-file-A");
+});
+
+test("rejects duplicate ids in a task collection", () => {
+  assert.throws(
+    () => fromLegacyTasks([
+      { id: "same-id", title: "اول" },
+      { id: "same-id", title: "دوم" }
+    ], { now: fixedNow }),
+    /Duplicate task id/
+  );
 });
 
 test("maps a canonical task back to legacy UI aliases", () => {
