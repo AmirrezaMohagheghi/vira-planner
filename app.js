@@ -123,28 +123,6 @@ function showToday() {
   document.querySelector("#today-date").textContent = formatTodayDate();
 }
 
-function updateProgress() {
-  const total = tasks.length;
-  const done = tasks.filter((task) => task.done).length;
-  const left = total - done;
-  const percent = total === 0 ? 0 : Math.round((done / total) * 100);
-
-  totalCount.textContent = toPersianDigits(total);
-  doneCount.textContent = toPersianDigits(done);
-  leftCount.textContent = toPersianDigits(left);
-  progressPercent.textContent = toPersianDigits(percent) + "٪";
-  progressRing.style.background =
-    `conic-gradient(var(--accent) ${percent}%, #28354a ${percent}%)`;
-
-  if (total === 0) {
-    progressCaption.textContent = "با یک کار کوچک شروع کن.";
-  } else if (percent === 100) {
-    progressCaption.textContent = "همهٔ کارها انجام شد؛ دمت گرم! 🎉";
-  } else {
-    progressCaption.textContent = `${toPersianDigits(left)} کار تا پایان فهرست باقی مانده.`;
-  }
-}
-
 function resetTaskForm() {
   taskForm.reset();
   taskTimeHour.setCustomValidity("");
