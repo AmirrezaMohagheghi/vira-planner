@@ -59,7 +59,7 @@ export function createTaskCollection(options = {}) {
 
   return {
     getTasks() {
-      return tasks;
+      return structuredClone(tasks);
     },
 
     isStorageReady() {
