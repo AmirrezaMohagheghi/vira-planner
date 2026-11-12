@@ -69,6 +69,10 @@ let selectedDate = null;
 let calendarView;
 let taskListView;
 
+function renderTaskViews() {
+  taskListView.render();
+  calendarView.render();}
+
 function toPersianDigits(value) {
   return persianNumber.format(value);
 }
@@ -122,13 +126,11 @@ taskForm.addEventListener("submit", (event) => {
 
   if (!result.ok) {
     handleTaskOperationFailure(result);
-    taskListView.render();
-    calendarView.render();
+    renderTaskViews();
     return;
   }
 
-  taskListView.render();
-  calendarView.render();
+  renderTaskViews();
   resetTaskForm();
   taskInput.focus();
 });
@@ -171,8 +173,7 @@ taskListView = createTaskListView({
     } else if (editingTaskId === task.id) {
       resetTaskForm();
     }
-    taskListView.render();
-    calendarView.render();
+    renderTaskViews();
   },
   formatTaskDate,
   formatDigits: toPersianDigits
@@ -206,5 +207,4 @@ calendarView = createCalendarView({
 });
 
 showToday();
-calendarView.render();
-taskListView.render();
+renderTaskViews();
