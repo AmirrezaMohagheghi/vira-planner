@@ -114,7 +114,8 @@ function createFixture(initialSelectedDate = null) {
 }
 
 function addLocalDays(iso, amount) {
-  const date = new Date(iso);
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
   date.setDate(date.getDate() + amount);
   return dateToISO(date);
 }
