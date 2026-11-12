@@ -15,11 +15,12 @@ function setup() {
   const dateInput = element();
   const priorityInput = element("medium");
   const categoryInput = element("personal");
+  const durationInput = element();
   const submitButton = element();
   const cancelButton = element();
   const taskTimeInput = { value: "", cleared: false, clear() { this.cleared = true; this.value = ""; }, setValue(value) { this.value = value; }, getValue() { return this.value; } };
-  const view = createTaskFormView({ form, titleInput, dateInput, priorityInput, categoryInput, submitButton, cancelButton, taskTimeInput });
-  return { view, form, titleInput, dateInput, priorityInput, categoryInput, submitButton, cancelButton, taskTimeInput };
+  const view = createTaskFormView({ form, titleInput, dateInput, priorityInput, categoryInput, durationInput, submitButton, cancelButton, taskTimeInput });
+  return { view, form, titleInput, dateInput, priorityInput, categoryInput, durationInput, submitButton, cancelButton, taskTimeInput };
 }
 
 test("reads normalized values from the task form", () => {
@@ -29,7 +30,9 @@ test("reads normalized values from the task form", () => {
   state.taskTimeInput.value = "09:05";
   state.priorityInput.value = "high";
   state.categoryInput.value = "study";
-  assert.deepEqual(state.view.getValues(), { title: "مطالعه", date: "2026-11-12", time: "09:05", priority: "high", category: "study" });
+  assert.deepEqual(state.view.getValues(), { title: "مطالعه", date: "2026-11-12", time: "09:05", priority: "high", category: "study", durationMinutes: null });
+  state.durationInput.value = "90";
+  assert.equal(state.view.getValues().durationMinutes, 90);
 });
 
 test("resets the form and restores add mode", () => {
@@ -43,12 +46,13 @@ test("resets the form and restores add mode", () => {
 
 test("loads task values and switches to edit mode", () => {
   const state = setup();
-  state.view.startEditing({ title: "مطالعه", date: "2026-11-12", time: "09:05", priority: "high", category: "study" });
+  state.view.startEditing({ title: "مطالعه", date: "2026-11-12", time: "09:05", priority: "high", category: "study", durationMinutes: 90 });
   assert.equal(state.titleInput.value, "مطالعه");
   assert.equal(state.dateInput.value, "2026-11-12");
   assert.equal(state.taskTimeInput.value, "09:05");
   assert.equal(state.priorityInput.value, "high");
   assert.equal(state.categoryInput.value, "study");
+  assert.equal(state.durationInput.value, 90);
   assert.equal(state.submitButton.textContent, "ذخیرهٔ تغییرات");
   assert.equal(state.cancelButton.hidden, false);
   assert.equal(state.form.scrolled, true);
@@ -62,4 +66,5 @@ test("uses defaults for optional legacy task fields", () => {
   assert.equal(state.taskTimeInput.value, "");
   assert.equal(state.priorityInput.value, "medium");
   assert.equal(state.categoryInput.value, "personal");
+  assert.equal(state.durationInput.value, "");
 });
