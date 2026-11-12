@@ -199,24 +199,28 @@ h1 span { font-size: 23px; }
 .storage-warning { margin: -12px 0 22px; padding: 13px 16px; border: 1px solid #f3b87566; border-radius: 11px; color: #f5c994; background: #f3b87512; font-size: 11px; line-height: 2; }
 
 .time-picker {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  gap: 7px;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
   min-height: 38px;
-  padding: 4px 8px;
+  padding: 4px 6px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: #0b1524;
+  overflow: hidden;
 }
 .time-picker:focus-within {
   border-color: #a78bfa88;
   box-shadow: 0 0 0 3px #a78bfa12;
 }
 .time-picker .time-part {
-  width: 48px;
+  width: 100%;
   min-width: 0;
-  padding: 5px 3px;
+  max-width: 100%;
+  padding: 5px 1px;
   border: 0;
   outline: none;
   border-radius: 5px;
