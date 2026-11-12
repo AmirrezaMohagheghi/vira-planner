@@ -1,5 +1,15 @@
 import { loadTasks, saveTasks } from "./src/infrastructure/storage/local-task-storage.js";
 import { createTaskForUI, updateTaskForUI } from "./src/application/tasks/task-use-cases.js";
+import {
+  dateToISO,
+  isoToDate,
+  getJalaliParts,
+  formatJalaliDate,
+  formatJalaliMonth,
+  formatTodayDate,
+  getTodayISO,
+  getJalaliCalendarDays
+} from "./src/domain/calendar/jalali-calendar.js";
 
 const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
@@ -78,15 +88,6 @@ const categoryLabels = {
   work: "کار", worship: "عبادت", other: "سایر"
 };
 
-const jalaliNumericFormatter = new Intl.DateTimeFormat("en-US-u-ca-persian", {
-  year: "numeric", month: "numeric", day: "numeric"
-});
-const jalaliMonthFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-  month: "long", year: "numeric"
-});
-const jalaliDateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-  day: "numeric", month: "long", year: "numeric"
-});
 const persianNumber = new Intl.NumberFormat("fa-IR");
 
 let storageReady = true;
@@ -135,59 +136,13 @@ function toPersianDigits(value) {
   return persianNumber.format(value);
 }
 
-function dateToISO(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function isoToDate(value) {
-  if (!value) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function getJalaliParts(date) {
-  const parts = jalaliNumericFormatter.formatToParts(date);
-  const values = {};
-  for (const part of parts) {
-    if (part.type === "year" || part.type === "month" || part.type === "day") {
-      values[part.type] = Number(part.value);
-    }
-  }
-  return values;
-}
-
-function findJalaliMonthStart(year, month) {
-  // حدود میلادی ماه شمسی را پیدا می‌کنیم و روز اول آن را با تقویم داخلی مرورگر تشخیص می‌دهیم.
-  const approximate = new Date(year + 621, month + 1, 15);
-  for (let offset = -45; offset <= 45; offset++) {
-    const candidate = new Date(approximate);
-    candidate.setDate(approximate.getDate() + offset);
-    const parts = getJalaliParts(candidate);
-    if (parts.year === year && parts.month === month && parts.day === 1) {
-      return candidate;
-    }
-  }
-  return null;
-}
-
 function formatTaskDate(dateValue) {
   const date = isoToDate(dateValue);
-  return date ? jalaliDateFormatter.format(date) : "";
-}
-
-function getTodayISO() {
-  return dateToISO(new Date());
+  return date ? formatJalaliDate(date) : "";
 }
 
 function showToday() {
-  document.querySelector("#today-date").textContent =
-    new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
-      weekday: "long", day: "numeric", month: "long", year: "numeric"
-    }).format(new Date());
+  document.querySelector("#today-date").textContent = formatTodayDate();
 }
 
 function updateProgress() {
@@ -337,7 +292,7 @@ function renderTasks() {
 function selectCalendarDate(date) {
   selectedDate = dateToISO(date);
   taskDate.value = selectedDate;
-  const formatted = jalaliDateFormatter.format(date);
+  const formatted = formatJalaliDate(date);
   selectedDateLabel.textContent = `کارهای ${formatted}`;
   taskDateLabel.textContent = formatted;
   renderCalendar();
@@ -354,31 +309,21 @@ function moveSelectedDay(amount) {
 }
 
 function renderCalendar() {
-  calendarMonthTitle.textContent = jalaliMonthFormatter.format(
-    findJalaliMonthStart(calendarYear, calendarMonth) || new Date()
-  );
+  calendarMonthTitle.textContent = formatJalaliMonth(calendarYear, calendarMonth);
 
   while (calendarGrid.children.length > 7) {
     calendarGrid.removeChild(calendarGrid.lastElementChild);
   }
 
-  const firstDay = findJalaliMonthStart(calendarYear, calendarMonth);
-  if (!firstDay) return;
+  const calendarDays = getJalaliCalendarDays(calendarYear, calendarMonth);
+  if (calendarDays.length === 0) return;
 
-  const firstWeekday = (firstDay.getDay() + 1) % 7; // شنبه = صفر
-  const startDate = new Date(firstDay);
-  startDate.setDate(firstDay.getDate() - firstWeekday);
-
-  for (let index = 0; index < 42; index++) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + index);
-    const parts = getJalaliParts(date);
-    const iso = dateToISO(date);
+  for (const { date, parts, iso } of calendarDays) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "calendar-day";
     button.setAttribute("role", "gridcell");
-    button.setAttribute("aria-label", jalaliDateFormatter.format(date));
+    button.setAttribute("aria-label", formatJalaliDate(date));
     button.textContent = toPersianDigits(parts.day);
 
     if (parts.month !== calendarMonth || parts.year !== calendarYear) {
