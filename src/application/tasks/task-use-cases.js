@@ -43,6 +43,7 @@ export function updateTaskForUI(legacyTask, changes, options = {}) {
   if (Object.hasOwn(changes, "time")) domainChanges.startTime = emptyToNull(changes.time);
   if (Object.hasOwn(changes, "priority")) domainChanges.priority = changes.priority;
   if (Object.hasOwn(changes, "category")) domainChanges.categoryId = changes.category;
+  if (Object.hasOwn(changes, "durationMinutes")) domainChanges.durationMinutes = emptyToNull(changes.durationMinutes);
 
   if (Object.hasOwn(changes, "done")) {
     domainChanges.status = changes.done ? "completed" : "todo";
