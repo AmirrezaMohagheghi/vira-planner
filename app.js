@@ -1,15 +1,11 @@
 import { loadTasks, saveTasks } from "./src/infrastructure/storage/local-task-storage.js";
 import { createTaskForUI, updateTaskForUI } from "./src/application/tasks/task-use-cases.js";
 import {
-  dateToISO,
   isoToDate,
-  getJalaliParts,
   formatJalaliDate,
-  formatJalaliMonth,
-  formatTodayDate,
-  getTodayISO,
-  getJalaliCalendarDays
+  formatTodayDate
 } from "./src/domain/calendar/jalali-calendar.js";
+import { createCalendarView } from "./src/presentation/calendar/calendar-view.js";
 
 const taskForm = document.querySelector("#task-form");
 const taskInput = document.querySelector("#task-input");
@@ -76,12 +72,6 @@ const progressCaption = document.querySelector("#progress-caption");
 const focusButton = document.querySelector("#focus-button");
 const storageWarning = document.querySelector("#storage-warning");
 
-const calendarGrid = document.querySelector("#calendar-grid");
-const calendarMonthTitle = document.querySelector("#calendar-month-title");
-const selectedDateLabel = document.querySelector("#selected-date-label");
-const taskDateLabel = document.querySelector("#task-date-label");
-const showAllTasksButton = document.querySelector("#show-all-tasks");
-
 const priorityLabels = { high: "زیاد", medium: "متوسط", low: "کم" };
 const categoryLabels = {
   personal: "شخصی", study: "درس و مطالعه", university: "دانشگاه",
@@ -115,7 +105,7 @@ function persistTasks() {
     }
     lockStorage(error);
     renderTasks();
-    renderCalendar();
+    calendarView.render();
     storageWarning.textContent =
       `ذخیره‌سازی انجام نشد؛ تغییر اخیر ثبت نشده است و امکانات ویرایش تا بررسی حافظه غیرفعال شدند. ${error.message}`;
     return false;
@@ -129,8 +119,7 @@ try {
 }
 let editingTaskId = null;
 let selectedDate = null;
-let calendarYear;
-let calendarMonth;
+let calendarView;
 
 function toPersianDigits(value) {
   return persianNumber.format(value);
@@ -279,7 +268,7 @@ function renderTasks() {
       if (editingTaskId === task.id) resetTaskForm();
       persistTasks();
       renderTasks();
-      renderCalendar();
+      calendarView.render();
     });
 
     item.append(checkbox, main, editButton, removeButton);
@@ -287,76 +276,6 @@ function renderTasks() {
   });
 
   updateProgress();
-}
-
-function selectCalendarDate(date) {
-  selectedDate = dateToISO(date);
-  taskDate.value = selectedDate;
-  const formatted = formatJalaliDate(date);
-  selectedDateLabel.textContent = `کارهای ${formatted}`;
-  taskDateLabel.textContent = formatted;
-  renderCalendar();
-  renderTasks();
-}
-
-function moveSelectedDay(amount) {
-  const baseDate = selectedDate ? isoToDate(selectedDate) : new Date();
-  baseDate.setDate(baseDate.getDate() + amount);
-  const parts = getJalaliParts(baseDate);
-  calendarYear = parts.year;
-  calendarMonth = parts.month;
-  selectCalendarDate(baseDate);
-}
-
-function renderCalendar() {
-  calendarMonthTitle.textContent = formatJalaliMonth(calendarYear, calendarMonth);
-
-  while (calendarGrid.children.length > 7) {
-    calendarGrid.removeChild(calendarGrid.lastElementChild);
-  }
-
-  const calendarDays = getJalaliCalendarDays(calendarYear, calendarMonth);
-  if (calendarDays.length === 0) return;
-
-  for (const { date, parts, iso } of calendarDays) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "calendar-day";
-    button.setAttribute("role", "gridcell");
-    button.setAttribute("aria-label", formatJalaliDate(date));
-    button.textContent = toPersianDigits(parts.day);
-
-    if (parts.month !== calendarMonth || parts.year !== calendarYear) {
-      button.classList.add("outside-month");
-    }
-    if (iso === getTodayISO()) button.classList.add("is-today");
-    if (iso === selectedDate) button.classList.add("is-selected");
-
-    if (tasks.some((task) => task.date === iso)) {
-      const dot = document.createElement("span");
-      dot.className = "task-dot";
-      dot.setAttribute("aria-hidden", "true");
-      button.append(dot);
-    }
-
-    button.addEventListener("click", () => {
-      const clickedParts = getJalaliParts(date);
-      calendarYear = clickedParts.year;
-      calendarMonth = clickedParts.month;
-      selectCalendarDate(date);
-    });
-    calendarGrid.append(button);
-  }
-}
-
-function changeCalendarMonth(amount) {
-  let nextMonth = calendarMonth + amount;
-  let nextYear = calendarYear;
-  if (nextMonth < 1) { nextMonth = 12; nextYear--; }
-  if (nextMonth > 12) { nextMonth = 1; nextYear++; }
-  calendarMonth = nextMonth;
-  calendarYear = nextYear;
-  renderCalendar();
 }
 
 taskForm.addEventListener("submit", (event) => {
@@ -390,7 +309,7 @@ taskForm.addEventListener("submit", (event) => {
 
   if (!persistTasks()) return;
   renderTasks();
-  renderCalendar();
+  calendarView.render();
   resetTaskForm();
   taskInput.focus();
 });
@@ -401,28 +320,33 @@ focusButton.addEventListener("click", () => {
   document.querySelector("#tasks").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
-document.querySelector("#previous-day").addEventListener("click", () => moveSelectedDay(-1));
-document.querySelector("#next-day").addEventListener("click", () => moveSelectedDay(1));
-document.querySelector("#previous-month").addEventListener("click", () => changeCalendarMonth(-1));
-document.querySelector("#next-month").addEventListener("click", () => changeCalendarMonth(1));
-document.querySelector("#go-to-today").addEventListener("click", () => {
-  const today = new Date();
-  const parts = getJalaliParts(today);
-  calendarYear = parts.year;
-  calendarMonth = parts.month;
-  selectCalendarDate(today);
-});
-showAllTasksButton.addEventListener("click", () => {
-  selectedDate = null;
-  selectedDateLabel.textContent = "همهٔ کارها نمایش داده می‌شوند";
-  taskDateLabel.textContent = "همهٔ کارها";
-  renderCalendar();
-  renderTasks();
+calendarView = createCalendarView({
+  elements: {
+    grid: document.querySelector("#calendar-grid"),
+    monthTitle: document.querySelector("#calendar-month-title"),
+    selectedDateLabel: document.querySelector("#selected-date-label"),
+    taskDateLabel: document.querySelector("#task-date-label"),
+    taskDateInput: taskDate,
+    previousDayButton: document.querySelector("#previous-day"),
+    nextDayButton: document.querySelector("#next-day"),
+    previousMonthButton: document.querySelector("#previous-month"),
+    nextMonthButton: document.querySelector("#next-month"),
+    todayButton: document.querySelector("#go-to-today"),
+    showAllTasksButton: document.querySelector("#show-all-tasks")
+  },
+  getTasks: () => tasks,
+  getSelectedDate: () => selectedDate,
+  onDateSelected: (date) => {
+    selectedDate = date;
+    renderTasks();
+  },
+  onShowAllTasks: () => {
+    selectedDate = null;
+    renderTasks();
+  },
+  formatDigits: toPersianDigits
 });
 
-const todayParts = getJalaliParts(new Date());
-calendarYear = todayParts.year;
-calendarMonth = todayParts.month;
 showToday();
-renderCalendar();
+calendarView.render();
 renderTasks();
