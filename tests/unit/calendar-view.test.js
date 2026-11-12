@@ -113,9 +113,13 @@ function createFixture(initialSelectedDate = null) {
   };
 }
 
-function addLocalDays(iso, amount) {
+function fromLocalISO(iso) {
   const [year, month, day] = iso.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
+  return new Date(year, month - 1, day);
+}
+
+function addLocalDays(iso, amount) {
+  const date = fromLocalISO(iso);
   date.setDate(date.getDate() + amount);
   return dateToISO(date);
 }
@@ -158,11 +162,11 @@ test("selecting a calendar day updates the input, labels, and selection callback
     );
     assert.equal(
       fixture.elements.selectedDateLabel.textContent,
-      `کارهای ${formatJalaliDate(new Date(fixture.selectedDates[0]))}`
+      `کارهای ${formatJalaliDate(fromLocalISO(fixture.selectedDates[0]))}`
     );
     assert.equal(
       fixture.elements.taskDateLabel.textContent,
-      formatJalaliDate(new Date(fixture.selectedDates[0]))
+      formatJalaliDate(fromLocalISO(fixture.selectedDates[0]))
     );
     assert.ok(selectedISO);
   } finally {
