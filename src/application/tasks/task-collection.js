@@ -18,11 +18,13 @@ export function createTaskCollection(options = {}) {
   const updateTask = options.updateTask ?? updateTaskForUI;
 
   let tasks = [];
+  let lastPersistedTasks = [];
   let storageReady = true;
   let storageError = null;
 
   try {
     tasks = readTasks();
+    lastPersistedTasks = structuredClone(tasks);
   } catch (error) {
     storageReady = false;
     storageError = error;
@@ -31,16 +33,19 @@ export function createTaskCollection(options = {}) {
   function persist() {
     try {
       writeTasks(tasks);
+      lastPersistedTasks = structuredClone(tasks);
       return { ok: true };
-    } catch (error) {
+    } catch (writeError) {
       try {
         tasks = readTasks();
+        lastPersistedTasks = structuredClone(tasks);
       } catch (readError) {
-        error = readError;
+        tasks = structuredClone(lastPersistedTasks);
+        writeError.recoveryError = readError;
       }
       storageReady = false;
-      storageError = error;
-      return { ok: false, kind: "storage", error };
+      storageError = writeError;
+      return { ok: false, kind: "storage", error: writeError };
     }
   }
 
