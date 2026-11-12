@@ -1,5 +1,9 @@
+import { validateTask } from "../../domain/tasks/task.js";
+
 const STORAGE_KEY = "vira-planner-tasks-v1";
 const BACKUP_KEY = "vira-planner-tasks-backup-v1";
+const RESTORE_ROLLBACK_KEY = "vira-planner-tasks-pre-restore-v1";
+const SCHEMA_VERSION = 2;
 
 export class TaskStorageError extends Error {
   constructor(code, message, cause) {
@@ -20,51 +24,42 @@ function getStorage(storage) {
   return storage;
 }
 
-function validateTasks(value) {
-  if (!Array.isArray(value)) {
+function validateTaskCollection(tasks) {
+  if (!Array.isArray(tasks)) {
     throw new TaskStorageError(
       "INVALID_DATA",
       "ساختار اطلاعات وظایف معتبر نیست؛ دادهٔ اصلی دست‌نخورده باقی مانده است."
     );
   }
 
-  const valid = value.every((task) =>
-    task &&
-    typeof task === "object" &&
-    !Array.isArray(task) &&
-    typeof task.id === "string" &&
-    typeof task.title === "string"
-  );
+  const ids = new Set();
+  for (const task of tasks) {
+    try {
+      validateTask(task);
+    } catch (cause) {
+      throw new TaskStorageError(
+        "INVALID_TASK",
+        "حداقل یکی از وظایف با مدل معتبر ویرا سازگار نیست؛ دادهٔ اصلی دست‌نخورده باقی مانده است.",
+        cause
+      );
+    }
 
-  if (!valid) {
-    throw new TaskStorageError(
-      "INVALID_TASK",
-      "یکی از وظایف ساختار معتبری ندارد؛ دادهٔ اصلی دست‌نخورده باقی مانده است."
-    );
+    if (ids.has(task.id)) {
+      throw new TaskStorageError(
+        "DUPLICATE_TASK_ID",
+        `شناسهٔ وظیفه تکراری است: ${task.id}. دادهٔ اصلی تغییر نکرد.`
+      );
+    }
+    ids.add(task.id);
   }
 
-  return value;
+  return tasks;
 }
 
-export function loadTasks(storage = globalThis.localStorage) {
-  const store = getStorage(storage);
-  let saved;
-
-  try {
-    saved = store.getItem(STORAGE_KEY);
-  } catch (cause) {
-    throw new TaskStorageError(
-      "READ_FAILED",
-      "خواندن اطلاعات ویرا از حافظهٔ مرورگر ممکن نشد.",
-      cause
-    );
-  }
-
-  if (saved === null) return [];
-
+function parseSavedValue(raw) {
   let parsed;
   try {
-    parsed = JSON.parse(saved);
+    parsed = JSON.parse(raw);
   } catch (cause) {
     throw new TaskStorageError(
       "CORRUPT_JSON",
@@ -73,16 +68,33 @@ export function loadTasks(storage = globalThis.localStorage) {
     );
   }
 
-  return validateTasks(parsed);
+  // Version 1 was a raw array. Application layer owns legacy normalization.
+  if (Array.isArray(parsed)) return { kind: "legacy", tasks: parsed };
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new TaskStorageError(
+      "INVALID_DATA",
+      "ساختار اطلاعات ذخیره‌شده معتبر نیست؛ دادهٔ اصلی دست‌نخورده باقی مانده است."
+    );
+  }
+
+  if (parsed.schemaVersion !== SCHEMA_VERSION) {
+    throw new TaskStorageError(
+      "UNSUPPORTED_SCHEMA_VERSION",
+      `نسخهٔ ساختار ذخیره‌سازی پشتیبانی نمی‌شود: ${String(parsed.schemaVersion)}. برای جلوگیری از ازدست‌رفتن اطلاعات، داده بازنویسی نشد.`
+    );
+  }
+
+  return {
+    kind: "current",
+    tasks: validateTaskCollection(parsed.tasks)
+  };
 }
 
-export function saveTasks(tasks, storage = globalThis.localStorage) {
-  const store = getStorage(storage);
-  validateTasks(tasks);
-
-  let serialized;
+function serializeEnvelope(tasks) {
+  validateTaskCollection(tasks);
   try {
-    serialized = JSON.stringify(tasks);
+    return JSON.stringify({ schemaVersion: SCHEMA_VERSION, tasks });
   } catch (cause) {
     throw new TaskStorageError(
       "SERIALIZE_FAILED",
@@ -90,23 +102,134 @@ export function saveTasks(tasks, storage = globalThis.localStorage) {
       cause
     );
   }
+}
 
-  let previous;
+function readRaw(store, key, code = "READ_FAILED") {
   try {
-    previous = store.getItem(STORAGE_KEY);
-    // قبل از جایگزینی دادهٔ قبلی، یک نسخهٔ پشتیبان از آن نگه می‌داریم.
-    if (previous !== null) store.setItem(BACKUP_KEY, previous);
-    store.setItem(STORAGE_KEY, serialized);
+    return store.getItem(key);
   } catch (cause) {
     throw new TaskStorageError(
-      "WRITE_FAILED",
-      "ذخیره‌سازی انجام نشد. اطلاعات قبلی تا حد امکان حفظ شده‌اند.",
+      code,
+      "خواندن اطلاعات از حافظهٔ مرورگر ممکن نشد.",
       cause
     );
   }
 }
 
+function writeEnvelope(store, tasks) {
+  const serialized = serializeEnvelope(tasks);
+  const previous = readRaw(store, STORAGE_KEY);
+
+  try {
+    // Preserve the exact previous bytes before replacing the current value.
+    if (previous !== null) store.setItem(BACKUP_KEY, previous);
+    store.setItem(STORAGE_KEY, serialized);
+  } catch (cause) {
+    throw new TaskStorageError(
+      "WRITE_FAILED",
+      "ذخیره‌سازی انجام نشد. نسخهٔ قبلی تا حد امکان حفظ شده است.",
+      cause
+    );
+  }
+
+  let written;
+  try {
+    written = store.getItem(STORAGE_KEY);
+    if (written !== serialized) {
+      throw new Error("Stored value differs from the verified value.");
+    }
+    const parsed = parseSavedValue(written);
+    if (parsed.kind !== "current") {
+      throw new Error("Stored value is not a current schema envelope.");
+    }
+  } catch (cause) {
+    if (previous !== null) {
+      try {
+        store.setItem(STORAGE_KEY, previous);
+      } catch {
+        // The original backup remains available if rollback also fails.
+      }
+    }
+    throw new TaskStorageError(
+      "VERIFY_FAILED",
+      "بررسی صحت اطلاعات ذخیره‌شده ناموفق بود؛ برنامه نوشتن عادی را متوقف می‌کند.",
+      cause
+    );
+  }
+}
+
+export function loadTasks(storage = globalThis.localStorage) {
+  const store = getStorage(storage);
+  const saved = readRaw(store, STORAGE_KEY);
+  if (saved === null) return [];
+
+  return parseSavedValue(saved).tasks;
+}
+
+export function saveTasks(tasks, storage = globalThis.localStorage) {
+  const store = getStorage(storage);
+  writeEnvelope(store, tasks);
+}
+
+/**
+ * Called by the application after legacy records have been normalized.
+ * Migration is performed only for the old raw-array format.
+ */
+export function migrateLegacyTasks(tasks, storage = globalThis.localStorage) {
+  const store = getStorage(storage);
+  const saved = readRaw(store, STORAGE_KEY);
+  if (saved === null) return false;
+
+  const parsed = parseSavedValue(saved);
+  if (parsed.kind !== "legacy") return false;
+
+  writeEnvelope(store, tasks);
+  return true;
+}
+
+/**
+ * Restores the verified backup bytes. The current value is first retained in
+ * a separate rollback slot so a failed restore does not destroy either copy.
+ */
+export function restoreTasksFromBackup(storage = globalThis.localStorage) {
+  const store = getStorage(storage);
+  const backup = readRaw(store, BACKUP_KEY);
+  if (backup === null) {
+    throw new TaskStorageError("BACKUP_NOT_FOUND", "نسخهٔ پشتیبانی برای بازیابی وجود ندارد.");
+  }
+
+  const parsedBackup = parseSavedValue(backup);
+  if (parsedBackup.kind === "current") {
+    validateTaskCollection(parsedBackup.tasks);
+  }
+
+  const current = readRaw(store, STORAGE_KEY);
+  try {
+    if (current !== null) store.setItem(RESTORE_ROLLBACK_KEY, current);
+    store.setItem(STORAGE_KEY, backup);
+    if (store.getItem(STORAGE_KEY) !== backup) {
+      throw new Error("Restored value failed byte-for-byte verification.");
+    }
+  } catch (cause) {
+    if (current !== null) {
+      try {
+        store.setItem(STORAGE_KEY, current);
+      } catch {
+        // The rollback copy and backup are retained for manual recovery.
+      }
+    }
+    throw new TaskStorageError(
+      "RESTORE_FAILED",
+      "بازیابی نسخهٔ پشتیبان کامل نشد؛ نسخه‌های موجود برای بررسی حفظ شده‌اند.",
+      cause
+    );
+  }
+
+  return parsedBackup.tasks;
+}
+
 export const taskStorageKeys = Object.freeze({
   current: STORAGE_KEY,
-  backup: BACKUP_KEY
+  backup: BACKUP_KEY,
+  restoreRollback: RESTORE_ROLLBACK_KEY
 });
