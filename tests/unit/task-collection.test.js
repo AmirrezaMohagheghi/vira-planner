@@ -186,3 +186,35 @@ test("returns a snapshot that cannot mutate the internal collection", () => {
   assert.deepEqual(collection.getTasks(), initial);
   assert.deepEqual(store.readStoredTasks(), initial);
 });
+
+
+test("returns a not-found result when removing an unknown task", () => {
+  const initial = [{ id: "task-1", title: "کار موجود" }];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store);
+
+  const result = collection.remove("missing");
+
+  assert.deepEqual(result, { ok: false, kind: "not-found" });
+  assert.deepEqual(collection.getTasks(), initial);
+  assert.deepEqual(store.readStoredTasks(), initial);
+});
+
+test("restores the collection when removing a task cannot be persisted", () => {
+  const initial = [{ id: "task-1", title: "کار موجود" }];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store, {
+    saveTasks() {
+      throw new Error("delete write blocked");
+    }
+  });
+
+  const result = collection.remove("task-1");
+
+  assert.equal(result.ok, false);
+  assert.equal(result.kind, "storage");
+  assert.match(result.error.message, /delete write blocked/);
+  assert.deepEqual(collection.getTasks(), initial);
+  assert.deepEqual(store.readStoredTasks(), initial);
+  assert.equal(collection.isStorageReady(), false);
+});
