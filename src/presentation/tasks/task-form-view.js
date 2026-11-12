@@ -1,5 +1,5 @@
 export function createTaskFormView({
-  form, titleInput, dateInput, priorityInput, categoryInput,
+  form, titleInput, dateInput, priorityInput, categoryInput, durationInput,
   submitButton, cancelButton, taskTimeInput
 }) {
   function reset() {
@@ -15,6 +15,7 @@ export function createTaskFormView({
     taskTimeInput.setValue(task.time || "");
     priorityInput.value = task.priority || "medium";
     categoryInput.value = task.category || "personal";
+    durationInput.value = task.durationMinutes ?? "";
     submitButton.textContent = "ذخیرهٔ تغییرات";
     cancelButton.hidden = false;
     form.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -27,7 +28,8 @@ export function createTaskFormView({
       date: dateInput.value,
       time: taskTimeInput.getValue(),
       priority: priorityInput.value,
-      category: categoryInput.value
+      category: categoryInput.value,
+      durationMinutes: durationInput.value === "" ? null : Number(durationInput.value)
     };
   }
 
