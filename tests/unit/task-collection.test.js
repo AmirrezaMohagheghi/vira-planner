@@ -1,0 +1,127 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createTaskCollection } from "../../src/application/tasks/task-collection.js";
+
+function createMemoryStore(initialTasks = []) {
+  let storedTasks = structuredClone(initialTasks);
+  return {
+    loadTasks() {
+      return structuredClone(storedTasks);
+    },
+    saveTasks(tasks) {
+      storedTasks = structuredClone(tasks);
+    },
+    readStoredTasks() {
+      return structuredClone(storedTasks);
+    }
+  };
+}
+
+function createCollection(store, overrides = {}) {
+  return createTaskCollection({
+    loadTasks: store.loadTasks,
+    saveTasks: store.saveTasks,
+    createTask: (details) => ({ id: "created-1", ...details }),
+    updateTask: (task, changes) => ({ ...task, ...changes }),
+    ...overrides
+  });
+}
+
+test("loads the initial task collection", () => {
+  const initial = [{ id: "task-1", title: "کار قبلی" }];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store);
+
+  assert.deepEqual(collection.getTasks(), initial);
+  assert.equal(collection.isStorageReady(), true);
+});
+
+test("creates a task and persists it at the beginning of the collection", () => {
+  const initial = [{ id: "task-1", title: "کار قبلی" }];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store);
+
+  const result = collection.create({ title: "کار تازه" });
+
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(collection.getTasks(), [
+    { id: "created-1", title: "کار تازه" },
+    ...initial
+  ]);
+  assert.deepEqual(store.readStoredTasks(), collection.getTasks());
+});
+
+test("updates and toggles tasks by id", () => {
+  const initial = [{ id: "task-1", title: "عنوان قبلی", done: false }];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store);
+
+  assert.deepEqual(collection.update("task-1", { title: "عنوان تازه" }), { ok: true });
+  assert.equal(collection.getTasks()[0].title, "عنوان تازه");
+
+  assert.deepEqual(collection.toggle("task-1", true), { ok: true });
+  assert.equal(collection.getTasks()[0].done, true);
+  assert.deepEqual(store.readStoredTasks(), collection.getTasks());
+});
+
+test("removes a task and persists the remaining collection", () => {
+  const initial = [
+    { id: "task-1", title: "حذف‌شدنی" },
+    { id: "task-2", title: "باقی‌مانده" }
+  ];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store);
+
+  assert.deepEqual(collection.remove("task-1"), { ok: true });
+  assert.deepEqual(collection.getTasks(), [initial[1]]);
+  assert.deepEqual(store.readStoredTasks(), [initial[1]]);
+});
+
+test("restores saved tasks and locks further changes after a persistence failure", () => {
+  const initial = [{ id: "task-1", title: "نسخهٔ ذخیره‌شده" }];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store, {
+    saveTasks() {
+      throw new Error("write blocked");
+    }
+  });
+
+  const result = collection.create({ title: "ذخیره‌نشده" });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error.message, /write blocked/);
+  assert.deepEqual(collection.getTasks(), initial);
+  assert.equal(collection.isStorageReady(), false);
+  assert.equal(collection.create({ title: "کار دیگر" }).ok, false);
+});
+
+test("locks changes when the initial task data cannot be loaded", () => {
+  const error = new Error("read blocked");
+  const collection = createTaskCollection({
+    loadTasks() {
+      throw error;
+    },
+    saveTasks() {
+      assert.fail("storage must not be written when loading failed");
+    }
+  });
+
+  assert.deepEqual(collection.getTasks(), []);
+  assert.equal(collection.isStorageReady(), false);
+  assert.equal(collection.getStorageError(), error);
+  assert.equal(collection.create({ title: "کار تازه" }).error, error);
+});
+
+test("does not change the collection when task validation fails", () => {
+  const initial = [{ id: "task-1", title: "کار قبلی" }];
+  const store = createMemoryStore(initial);
+  const collection = createCollection(store, {
+    createTask() {
+      throw new Error("invalid task");
+    }
+  });
+
+  assert.throws(() => collection.create({ title: "" }), /invalid task/);
+  assert.deepEqual(collection.getTasks(), initial);
+  assert.deepEqual(store.readStoredTasks(), initial);
+});
