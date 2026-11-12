@@ -111,6 +111,32 @@ test("restores saved tasks and locks further changes after a persistence failure
   assert.equal(collection.create({ title: "کار دیگر" }).ok, false);
 });
 
+test("keeps the last confirmed snapshot when both saving and recovery reading fail", () => {
+  const initial = [{ id: "task-1", title: "نسخهٔ مطمئن" }];
+  let loadCount = 0;
+  const writeError = new Error("write blocked");
+  const collection = createTaskCollection({
+    loadTasks() {
+      loadCount += 1;
+      if (loadCount === 1) return structuredClone(initial);
+      throw new Error("recovery read blocked");
+    },
+    saveTasks() {
+      throw writeError;
+    },
+    createTask: (details) => ({ id: "created-1", ...details })
+  });
+
+  const result = collection.create({ title: "تغییر ذخیره‌نشده" });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.kind, "storage");
+  assert.equal(result.error, writeError);
+  assert.deepEqual(collection.getTasks(), initial);
+  assert.equal(collection.isStorageReady(), false);
+  assert.equal(loadCount, 1);
+});
+
 test("locks changes when the initial task data cannot be loaded", () => {
   const error = new Error("read blocked");
   const collection = createTaskCollection({
