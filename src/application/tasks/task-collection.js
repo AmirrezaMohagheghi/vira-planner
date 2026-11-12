@@ -1,4 +1,3 @@
-import { loadTasks, saveTasks } from "../../infrastructure/storage/local-task-storage.js";
 import {
   createTaskForUI,
   updateTaskForUI
@@ -9,8 +8,12 @@ import {
  * It deliberately has no dependency on the DOM or presentation layer.
  */
 export function createTaskCollection(options = {}) {
-  const readTasks = options.loadTasks ?? loadTasks;
-  const writeTasks = options.saveTasks ?? saveTasks;
+  const readTasks = options.loadTasks;
+  const writeTasks = options.saveTasks;
+
+  if (typeof readTasks !== "function" || typeof writeTasks !== "function") {
+    throw new TypeError("Task collection requires loadTasks and saveTasks functions.");
+  }
   const createTask = options.createTask ?? createTaskForUI;
   const updateTask = options.updateTask ?? updateTaskForUI;
 
