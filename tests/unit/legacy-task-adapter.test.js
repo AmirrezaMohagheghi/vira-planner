@@ -5,7 +5,7 @@ import {
   toLegacyTask,
   fromLegacyTasks,
   toLegacyTasks
-} from "../../src/domain/tasks/legacy-task-adapter.js";
+} from "../../src/application/tasks/legacy-task-adapter.js";
 
 const fixedNow = "2026-11-11T10:00:00.000Z";
 
