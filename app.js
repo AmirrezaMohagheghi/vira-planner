@@ -33,13 +33,16 @@ const persianNumber = new Intl.NumberFormat("fa-IR");
 const taskCollection = createTaskCollection();
 
 function lockStorage(error) {
-  storageReady = false;
   storageWarning.hidden = false;
   storageWarning.textContent =
     `ویرا نتوانست اطلاعات قبلی را با اطمینان بخواند یا ذخیره کند. برای جلوگیری از ازدست‌رفتن اطلاعات، افزودن و ویرایش وظایف موقتاً غیرفعال شده است. جزئیات: ${error.message}`;
   taskForm.querySelectorAll("input, select, button").forEach((control) => {
     control.disabled = true;
   });
+}
+
+if (!taskCollection.isStorageReady()) {
+  lockStorage(taskCollection.getStorageError());
 }
 
 let editingTaskId = null;
