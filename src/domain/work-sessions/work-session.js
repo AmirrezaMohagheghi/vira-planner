@@ -58,8 +58,8 @@ export function validateWorkSession(session) {
       (startedAt === null || completedAt === null || cancelledAt !== null)) {
     throw new TypeError("A completed WorkSession requires startedAt and completedAt only.");
   }
-  if (status === "cancelled" && completedAt !== null) {
-    throw new TypeError("A cancelled WorkSession cannot have completedAt.");
+  if (status === "cancelled" && (cancelledAt === null || completedAt !== null)) {
+    throw new TypeError("A cancelled WorkSession requires cancelledAt and cannot have completedAt.");
   }
   if (startedAt !== null && completedAt !== null &&
       Date.parse(completedAt) < Date.parse(startedAt)) {
