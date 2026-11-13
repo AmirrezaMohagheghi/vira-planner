@@ -807,6 +807,64 @@ SQLite گزینهٔ اولیهٔ بررسی است، نه انتخاب قطعی.
 4. سپس طراحی persistence و coordination adapter در سند/مرحلهٔ مستقل.
 
 
+### ۱۷.۱۱ قرارداد دادهٔ WorkSession و TimeEntry — نسخهٔ نخست مدل دامنه
+
+**وضعیت:** قرارداد مدل دامنه برای مرحلهٔ نخست تصویب و تثبیت شد؛ persistence و UI همچنان خارج از این مرحله‌اند.
+
+#### WorkSession
+
+هر WorkSession متعلق به دقیقاً یک Task است و وضعیت یک نوبت کاری را نگه می‌دارد؛ مدت واقعی از TimeEntryها به دست می‌آید و در WorkSession کپی نمی‌شود.
+
+| فیلد | نوع | قاعده |
+|---|---|---|
+| `id` | string | شناسهٔ یکتا و غیرخالی |
+| `taskId` | string | شناسهٔ Task مالک؛ غیرخالی |
+| `status` | enum | `planned`, `in_progress`, `completed`, `cancelled` |
+| `plannedDurationSeconds` | integer/null | مدت برنامه‌ریزی‌شده؛ در صورت وجود عدد صحیح مثبت |
+| `startedAt` | UTC ISO timestamp/null | زمان اولین ورود به وضعیت در حال انجام؛ با pause/resume تغییر نمی‌کند |
+| `completedAt` | UTC ISO timestamp/null | فقط در وضعیت completed مقدار دارد |
+| `cancelledAt` | UTC ISO timestamp/null | فقط در وضعیت cancelled مقدار دارد |
+| `createdAt`, `updatedAt` | UTC ISO timestamp | زمان ایجاد و آخرین تغییر |
+| `version` | integer | عدد صحیح مثبت برای نسخهٔ موجودیت |
+
+قواعد وضعیت:
+- `planned`: هر سه فیلد `startedAt`, `completedAt`, `cancelledAt` برابر null هستند.
+- `in_progress`: `startedAt` مقدار دارد و دو فیلد پایان null هستند.
+- `completed`: `startedAt` و `completedAt` مقدار دارند، `cancelledAt` برابر null است و پایان قبل از شروع نیست.
+- `cancelled`: `cancelledAt` مقدار دارد و `completedAt` برابر null است؛ نشست می‌تواند پیش از شروع یا پس از شروع لغو شود.
+- pause وضعیت مستقل نیست؛ نشست در حالت `in_progress` می‌ماند و صرفاً TimeEntry باز وجود ندارد.
+
+#### TimeEntry
+
+| فیلد | نوع | قاعده |
+|---|---|---|
+| `id` | string | شناسهٔ یکتا و غیرخالی |
+| `workSessionId` | string | ارجاع غیرخالی به WorkSession مالک |
+| `kind` | enum | `timer_interval`, `manual_interval`, `manual_duration` |
+| `startedAt`, `endedAt` | UTC ISO timestamp/null | برای بازهٔ دقیق؛ پایان می‌تواند فقط برای تایمر باز null باشد |
+| `durationSeconds` | integer/null | فقط برای `manual_duration`؛ عدد صحیح مثبت |
+| `occurredOn` | ISO date/null | تاریخ اختیاری ثبت مدت دستی؛ هرگز به نیمه‌شب تبدیل نمی‌شود |
+| `timeZoneId` | IANA timezone | شناسهٔ معتبر منطقهٔ زمانی در لحظهٔ ثبت |
+| `status` | enum | `open`, `confirmed`, `rejected` |
+| `source` | enum | `timer` یا `manual` و باید با kind سازگار باشد |
+| `note` | string/null | توضیح اختیاری |
+| `createdAt`, `updatedAt` | UTC ISO timestamp | زمان ایجاد و آخرین تغییر |
+
+قواعد نوع و وضعیت:
+- `timer_interval`: شروع دقیق دارد؛ در وضعیت `open` پایان null است؛ در وضعیت `confirmed` پایان دقیق و بعد از شروع دارد. رد کردن بازهٔ بازیابی‌نشده مجاز است و آن را وارد محاسبه نمی‌کند.
+- `manual_interval`: شروع و پایان دقیق و معتبر دارد و هنگام ثبت دستی با وضعیت `confirmed` ایجاد می‌شود.
+- `manual_duration`: زمان شروع/پایان ندارد، مدت مثبت دارد و در صورت مشخص بودن، `occurredOn` یک تاریخ معتبر ISO است؛ منبع آن `manual` است.
+- `source=timer` فقط برای `timer_interval` و `source=manual` برای دو نوع دستی معتبر است.
+- مدت بازهٔ دقیق فقط از تفاضل timestampهای UTC محاسبه می‌شود؛ `manual_duration` در bucket جداگانه باقی می‌ماند.
+- فقط TimeEntry تأییدشده در زمان واقعی دقیق منظور می‌شود؛ `open` و `rejected` شمرده نمی‌شوند.
+- هر TimeEntry دقیق باید IANA timezone معتبر داشته باشد. timestampها رشتهٔ canonical UTC با پسوند `Z` هستند.
+- ارجاع به Task/WorkSession و یکتایی IDها در سطح مجموعه و use case بررسی می‌شود، نه در اعتبارسنجی منفرد یک شیء.
+
+#### مرز این مرحله
+
+در این مرحله فقط factory/validation و توابع خالص دامنه همراه تست ساخته می‌شوند. transitionهای lifecycle، عملیات اصلاح تاریخچه، هماهنگی تایمر، Web Locks، persistence، migration و UI مراحل مستقل بعدی‌اند. این قرارداد به‌تنهایی به معنی فعال‌شدن تایمر یا تغییر schema ذخیره‌شده نیست.
+
+
 ---
 
 ## ۲۰. اصل معماری تکامل‌پذیر و بازبودن مسیر ایده‌های آینده
