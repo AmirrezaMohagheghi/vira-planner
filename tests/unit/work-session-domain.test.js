@@ -70,3 +70,14 @@ test("rejects a completion before the start", () => {
     /before startedAt/
   );
 });
+
+test("requires a cancellation timestamp for a cancelled WorkSession", () => {
+  assert.throws(
+    () => createWorkSession({
+      id: "session-7",
+      taskId: "task-1",
+      status: "cancelled"
+    }, { now }),
+    /requires cancelledAt/
+  );
+});
