@@ -175,3 +175,10 @@ git status --short --branch
 - خلاصهٔ آن‌ها در `docs/PROJECT_CHECKPOINT.md` نیز ثبت شده است.
 - **قدم بعدی:** پنج سؤال باز در بخش ۱۷.۱۰ را با کاربر تعیین تکلیف کن؛ سپس قرارداد نهایی را در اسناد تثبیت کن و به طراحی مدل دامنه و تست‌های خالص WorkSession/TimeEntry برو. هنوز تایمر یا storage چندتب را روی LocalStorage پیاده نکن.
 - آخرین تغییرات مستنداتی این مرحله باید توسط کاربر روی دستگاه محلی pull شوند و پس از آن `npm.cmd test` اجرا شود. نتیجهٔ قبلی 85/85 مربوط به پیش از این تغییرات است.
+
+## وضعیت جدید طراحی ثبت زمان — 2026-11-13
+
+- تصمیم‌های تکمیلی بخش ۱۷.۱۰ از `docs/ARCHITECTURE.md` با کاربر تصویب شده‌اند؛ پیاده‌سازی هنوز شروع نشده است.
+- موارد قطعی: instantهای UTC/ISO 8601، ثبت IANA timezone، date-only مستقل، شمارندهٔ زنده با monotonic clock فقط در همان اجرا، ممنوعیت overlap بازه‌های دقیق در سطح کل برنامه، bucket جدا برای manual_duration، recovery نیازمند تأیید کاربر، هشدار recovery بالای ۱۲ ساعت، Web Locks با fail-closed و عدم فعال‌سازی timer multi-window روی LocalStorage فعلی.
+- **قدم بعدی اجرایی:** طراحی مدل دامنهٔ خالص `WorkSession` و `TimeEntry` و نوشتن تست‌های واحد؛ UI تایمر، persistence و lock adapter فعلاً خارج از دامنه‌اند.
+- این تصمیم‌ها در `docs/PROJECT_CHECKPOINT.md` نیز ثبت شده‌اند.
