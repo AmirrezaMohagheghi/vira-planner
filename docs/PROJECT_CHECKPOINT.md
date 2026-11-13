@@ -1303,3 +1303,26 @@ Vira Planner باید اپلیکیشن دسکتاپ مستقل و قابل نص�
 - خارج از دامنه: UI تایمر، LocalStorage/IndexedDB/SQLite، Repository، migration، Web Locks و هماهنگی چندتب/پنجره. این موارد مرحله‌های مستقل بعدی‌اند.
 - معیار پایان: قرارداد دقیق و بدون تناقض با بخش ۱۷؛ تست‌های معنادار برای validation، lifecycle، duration، overlap، recovery و manual-duration؛ عدم وابستگی Domain به browser، storage یا provider؛ و عبور تست‌ها.
 - پیش از تغییر کد، فایل‌های دقیق، دلیل، دامنه، اثر و روش آزمون به کاربر اعلام می‌شوند. فقط شاخهٔ `foundation/architecture-v0-5` مجاز است و `main` دست‌نخورده می‌ماند.
+
+
+---
+
+## ثبت پیشرفت مدل‌های ثبت زمان — 2026-11-13
+
+**وضعیت:** قرارداد و نخستین پیاده‌سازی خالص Domain برای WorkSession و TimeEntry روی شاخهٔ توسعه ثبت شده است؛ این قابلیت هنوز به UI، Application use case یا ذخیره‌سازی متصل نیست.
+
+### فایل‌های افزوده‌شده
+- `src/domain/work-sessions/work-session.js`: factory و validation مدل WorkSession، وضعیت‌ها و سازگاری timestampهای چرخهٔ عمر.
+- `src/domain/work-sessions/time-entry.js`: factory و validation سه نوع TimeEntry، منطقهٔ زمانی، محاسبهٔ مدت دقیق، تشخیص هم‌پوشانی و تفکیک مجموع مدت دستی از بازه‌های دقیق.
+- `tests/unit/work-session-domain.test.js`: تست‌های پایهٔ ساخت و اعتبارسنجی WorkSession.
+- `tests/unit/time-entry-domain.test.js`: تست‌های پایهٔ انواع ثبت زمان، timestamp، timezone، مدت، overlap و جمع‌بندی.
+
+### مرز و محدودیت فعلی
+- مدل‌ها pure هستند و هیچ دسترسی به DOM، LocalStorage، فایل‌سیستم، شبکه یا AI ندارند.
+- هنوز use caseهای شروع/توقف/ادامه/تکمیل، مدیریت تاریخچهٔ اصلاح، بررسی وجود Task/WorkSession در مخزن، هماهنگی بین تب‌ها، Web Locks، persistence، migration و UI ساخته نشده‌اند.
+- بررسی هم‌پوشانی تابع خالص دامنه است؛ تضمین هم‌زمانی بین چند تب فقط با adapter و ذخیره‌سازی مناسب در مرحلهٔ مستقل ممکن خواهد بود.
+- این تغییر schema ذخیره‌شدهٔ فعلی Task را تغییر نداده است.
+- تست‌های جدید در مخزن ثبت شده‌اند، اما اجرای محلی آن‌ها هنوز از دستگاه کاربر تأیید نشده است. آخرین گزارش قبلی ۸۵ تست موفق مربوط به قبل از این تغییرات است و نباید به‌عنوان نتیجهٔ تست این commitها گزارش شود.
+
+### گام بعدی
+بازبینی کد و اجرای `npm.cmd test` در محیط محلی کاربر؛ پس از رفع هر ایراد، طراحی pure Application use caseها و transitionهای lifecycle در مرحله‌ای جداگانه.
