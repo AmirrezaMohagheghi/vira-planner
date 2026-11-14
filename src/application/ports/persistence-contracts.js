@@ -11,6 +11,7 @@
  * @property {(query?: Object) => Promise<Object[]>} list
  * @property {(projectId: string) => Promise<Object[]>} listByProjectId
  * @property {(task: Object) => Promise<Object>} save
+ * @property {(id: string) => Promise<boolean>} delete
  *
  * @typedef {Object} ProjectRepository
  * @property {(id: string) => Promise<Object|null>} getById
@@ -43,7 +44,8 @@ const REPOSITORY_METHODS = Object.freeze({
     "getById",
     "list",
     "listByProjectId",
-    "save"
+    "save",
+    "delete"
   ]),
   ProjectRepository: Object.freeze([
     "getById",
