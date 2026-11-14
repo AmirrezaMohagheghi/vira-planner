@@ -30,7 +30,7 @@ test("accepts a TaskRepository with the required methods", () => {
 test("rejects an incomplete TaskRepository", () => {
   assert.throws(
     () => assertTaskRepository({ getById() {} }),
-    /TaskRepository requires a list() function/
+    /TaskRepository requires a list\(\) function/
   );
 });
 
@@ -42,7 +42,7 @@ test("accepts a ProjectRepository with the required methods", () => {
 test("rejects a ProjectRepository without listByGroupId", () => {
   assert.throws(
     () => assertProjectRepository(methods(["getById", "list", "save"])),
-    /ProjectRepository requires a listByGroupId() function/
+    /ProjectRepository requires a listByGroupId\(\) function/
   );
 });
 
@@ -54,7 +54,7 @@ test("accepts a ProjectGroupRepository with the required methods", () => {
 test("rejects a ProjectGroupRepository without save", () => {
   assert.throws(
     () => assertProjectGroupRepository(methods(["getById", "list"])),
-    /ProjectGroupRepository requires a save() function/
+    /ProjectGroupRepository requires a save\(\) function/
   );
 });
 
@@ -66,7 +66,7 @@ test("accepts an append-only task-project history repository shape", () => {
 test("rejects a history repository without append", () => {
   assert.throws(
     () => assertTaskProjectLinkHistoryRepository(methods(["listByTask"])),
-    /TaskProjectLinkHistoryRepository requires an append() function/
+    /TaskProjectLinkHistoryRepository requires an append\(\) function/
   );
 });
 
@@ -95,7 +95,7 @@ test("accepts a UnitOfWork with an execute function", () => {
 test("rejects a UnitOfWork without execute", () => {
   assert.throws(
     () => assertUnitOfWork({}),
-    /UnitOfWork requires an execute() function/
+    /UnitOfWork requires an execute\(\) function/
   );
 });
 
