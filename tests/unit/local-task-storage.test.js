@@ -63,10 +63,40 @@ test("writes and reads canonical tasks inside the versioned envelope", () => {
   saveTasks(tasks, storage);
 
   assert.deepEqual(JSON.parse(storage.getItem(taskStorageKeys.current)), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     tasks
   });
   assert.deepEqual(loadTasks(storage), tasks);
+});
+
+test("migrates a schema-v2 envelope to v3 and preserves the exact v2 backup", () => {
+  const oldTask = canonicalTask("task-v2");
+  delete oldTask.projectId;
+  const oldRaw = JSON.stringify({ schemaVersion: 2, tasks: [oldTask] });
+  const storage = new FakeStorage({ [taskStorageKeys.current]: oldRaw });
+
+  const loaded = loadTasks(storage);
+
+  assert.deepEqual(loaded, [{ ...oldTask, projectId: null }]);
+  assert.deepEqual(JSON.parse(storage.getItem(taskStorageKeys.current)), {
+    schemaVersion: 3,
+    tasks: loaded
+  });
+  assert.equal(storage.getItem(taskStorageKeys.backup), oldRaw);
+});
+
+test("does not rewrite a schema-v2 envelope when its task data is invalid", () => {
+  const oldRaw = JSON.stringify({
+    schemaVersion: 2,
+    tasks: [{ id: "broken", title: "ناقص" }]
+  });
+  const storage = new FakeStorage({ [taskStorageKeys.current]: oldRaw });
+
+  assert.throws(() => loadTasks(storage), (error) =>
+    error instanceof TaskStorageError && error.code === "INVALID_TASK"
+  );
+  assert.equal(storage.getItem(taskStorageKeys.current), oldRaw);
+  assert.equal(storage.getItem(taskStorageKeys.backup), null);
 });
 
 test("rejects corrupted JSON without changing the original value", () => {
