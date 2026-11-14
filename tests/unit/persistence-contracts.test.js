@@ -15,7 +15,7 @@ function methods(names) {
 
 function createRepositories() {
   return {
-    tasks: methods(["getById", "list", "listByProjectId", "save"]),
+    tasks: methods(["getById", "list", "listByProjectId", "save", "delete"]),
     projects: methods(["getById", "list", "listByGroupId", "save"]),
     projectGroups: methods(["getById", "list", "save"]),
     taskProjectHistory: methods(["append", "listByTask"])
@@ -25,6 +25,13 @@ function createRepositories() {
 test("accepts a TaskRepository with the required methods", () => {
   const repository = methods(["getById", "list", "listByProjectId", "save"]);
   assert.equal(assertTaskRepository(repository), repository);
+});
+
+test("rejects a TaskRepository without delete", () => {
+  assert.throws(
+    () => assertTaskRepository(methods(["getById", "list", "listByProjectId", "save"])),
+    /TaskRepository requires a delete\\(\\) function/
+  );
 });
 
 test("rejects an incomplete TaskRepository", () => {
