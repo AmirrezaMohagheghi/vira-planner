@@ -1201,3 +1201,22 @@ Use caseهای مرتبط با چند موجودیت باید تمام اعتب�
 - Storage از schemaVersion 2 به 3 ارتقا یافت. هنگام خواندن envelope نسخهٔ 2، Taskها با `projectId: null` نرمال می‌شوند؛ پیش از جایگزینی، بایت‌های دقیق نسخهٔ قبلی در Backup نگهداری و envelope جدید بررسی می‌شود.
 - اگر اعتبارسنجی دادهٔ نسخهٔ 2 شکست بخورد، مقدار اصلی بازنویسی نمی‌شود.
 - عملیات Attach/Detach/Move، اعتبارسنجی وجود Project/Group، ذخیره‌سازی خود Projectها و Groupها، و تاریخچهٔ رابطه در این مرحله پیاده‌سازی نشده‌اند و در Application/Persistence stages باقی می‌مانند.
+
+
+---
+
+## پیاده‌سازی Application رابطهٔ Task و Project — 2026-11-14
+
+**وضعیت: use caseهای پایه پیاده‌سازی شده‌اند؛ persistence تاریخچه و هماهنگی چندموجودیتی هنوز انجام نشده است.**
+
+فایل `src/application/projects/task-project-relationships.js` مرز Application برای سه عملیات رابطه را فراهم می‌کند:
+
+- `attachTaskToProject(task, project, options)`: اتصال Task مستقل به Project فعال.
+- `detachTaskFromProject(task, options)`: جداسازی Task؛ حتی اگر Project فعلی archived یا trashed باشد.
+- `moveTaskToProject(task, destinationProject, options)`: انتقال Task متصل به Project فعال دیگری.
+
+هر عملیات تغییردهنده، Task جدید و یک رویداد تاریخچه با شناسه، زمان، Task ID، نوع رویداد، Project مبدأ/مقصد و actor برمی‌گرداند. actor در این مرحله یکی از `user` یا `ai` است. این برچسب به‌تنهایی مجوز دسترسی ایجاد نمی‌کند؛ احراز مجوز و سیاست اجرای AI در لایه‌های بالاتر باقی می‌ماند.
+
+رفتارهای بدون تغییر، مانند detach کردن Task مستقل یا انتقال به همان Project، idempotent هستند و رویداد تکراری تولید نمی‌کنند. اتصال و انتقال به Project غیر فعال رد می‌شود. مدل Task و Project ورودی mutate نمی‌شوند.
+
+**محدودیت آگاهانه:** این use caseها روی رکوردهای ورودی کار می‌کنند و خودشان repository، persistence یا تراکنش چندموجودیتی ندارند. فراخواننده باید نتیجهٔ Task و event را در مرحلهٔ Persistence به‌صورت سازگار ذخیره کند. وجود Project در مخزن و یکتایی Taskها در repository نیز تا زمان یکپارچه‌سازی persistence مسئولیت caller است.
