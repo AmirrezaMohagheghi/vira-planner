@@ -1626,3 +1626,40 @@ Vira Planner باید اپلیکیشن دسکتاپ مستقل و قابل نص�
 ## تأیید تست محلی مرحلهٔ دوم — 2026-11-14
 
 کاربر پس از دریافت اصلاحات، اجرای کامل تست‌ها را گزارش کرد: **125 passed, 0 failed, 0 skipped**. بنابراین مجموعهٔ تست‌های فعلی پس از افزودن `Task.projectId`، `Project.groupId` و مهاجرت Storage از schema v2 به v3 سبز است. این نتیجه فقط تست‌های موجود را تأیید می‌کند؛ Application use caseهای Attach/Detach/Move و persistence مستقل Project/Group هنوز پیاده‌سازی نشده‌اند.
+
+
+---
+
+## اجرای مرحلهٔ سوم: Application use caseهای رابطهٔ Task و Project — 2026-11-14
+
+**Branch:** `foundation/architecture-v0-5`  
+**وضعیت:** فایل‌های کد و تست ثبت شده‌اند؛ اجرای تست محلی کاربر هنوز لازم است.
+
+### فایل‌های افزوده‌شده
+- `src/application/projects/task-project-relationships.js`: عملیات Attach، Detach و Move در لایهٔ Application.
+- `tests/unit/task-project-relationships.test.js`: تست‌های عملیات موفق، رویداد تاریخچه، Project غیرفعال، ورودی نامعتبر، actor و رفتارهای idempotent.
+
+### قرارداد اجرایی
+- Attach فقط Task مستقل را به Project فعال متصل می‌کند.
+- Detach حتی از Project archived/trashed مجاز است.
+- Move فقط برای Task متصل و به مقصد فعال مجاز است.
+- Move به همان Project و Detach از Task مستقل بدون تغییر و بدون event تکراری انجام می‌شوند.
+- رویدادهای تاریخچه شامل id، occurredAt، taskId، type، fromProjectId، toProjectId و actor هستند.
+- actor فعلاً با type برابر `user` یا `ai` و id اختیاری مدل می‌شود؛ این صرفاً metadata است و جایگزین authorization نیست.
+- توابع Task ورودی را mutate نمی‌کنند و نتیجهٔ Task و event را برمی‌گردانند.
+
+### مرز و محدودیت
+- هیچ UI، repository، ذخیره‌سازی مستقل Project/Group یا ذخیرهٔ دائمی تاریخچه اضافه نشده است.
+- این use caseها وجود Project در persistence و commit اتمیک Task + event را تضمین نمی‌کنند؛ این مسئولیت به مرحلهٔ Persistence تعلق دارد.
+- هیچ dependency یا schema storage جدیدی اضافه نشده است.
+- `app.js` و مسیر فعلی Task Collection تغییر نکرده‌اند.
+
+### بررسی لازم
+کاربر باید اجرا کند:
+
+```powershell
+git pull origin foundation/architecture-v0-5
+npm.cmd test
+```
+
+تا دریافت خروجی، تست‌های این مرحله در محیط محلی کاربر تأییدشده محسوب نمی‌شوند.
