@@ -25,6 +25,7 @@ test("creates an active Project with stable defaults", () => {
     id: "project-1",
     name: "پروژهٔ آزمایشی",
     description: null,
+    groupId: null,
     status: "active",
     createdAt: fixedNow,
     updatedAt: fixedNow,
