@@ -23,14 +23,14 @@ function createRepositories() {
 }
 
 test("accepts a TaskRepository with the required methods", () => {
-  const repository = methods(["getById", "list", "listByProjectId", "save"]);
+  const repository = methods(["getById", "list", "listByProjectId", "save", "delete"]);
   assert.equal(assertTaskRepository(repository), repository);
 });
 
 test("rejects a TaskRepository without delete", () => {
   assert.throws(
     () => assertTaskRepository(methods(["getById", "list", "listByProjectId", "save"])),
-    /TaskRepository requires a delete\\(\\) function/
+    /TaskRepository requires a delete\(\) function/
   );
 });
 
