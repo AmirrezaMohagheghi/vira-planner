@@ -3,7 +3,8 @@ import { validateTask } from "../../domain/tasks/task.js";
 const STORAGE_KEY = "vira-planner-tasks-v1";
 const BACKUP_KEY = "vira-planner-tasks-backup-v1";
 const RESTORE_ROLLBACK_KEY = "vira-planner-tasks-pre-restore-v1";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
+const PREVIOUS_SCHEMA_VERSION = 2;
 
 export class TaskStorageError extends Error {
   constructor(code, message, cause) {
@@ -114,6 +115,20 @@ function parseSavedValue(raw) {
     );
   }
 
+  if (parsed.schemaVersion === PREVIOUS_SCHEMA_VERSION) {
+    if (!Array.isArray(parsed.tasks)) {
+      throw new TaskStorageError("INVALID_DATA", "ساختار وظایف نسخهٔ قبلی معتبر نیست.");
+    }
+    const migratedTasks = parsed.tasks.map((task) => ({
+      ...task,
+      projectId: task?.projectId ?? null
+    }));
+    return {
+      kind: "migration",
+      tasks: validateTaskCollection(migratedTasks)
+    };
+  }
+
   if (parsed.schemaVersion !== SCHEMA_VERSION) {
     throw new TaskStorageError(
       "UNSUPPORTED_SCHEMA_VERSION",
@@ -201,7 +216,12 @@ export function loadTasks(storage = globalThis.localStorage) {
   const saved = readRaw(store, STORAGE_KEY);
   if (saved === null) return [];
 
-  return parseSavedValue(saved).tasks;
+  const parsed = parseSavedValue(saved);
+  if (parsed.kind === "migration") {
+    // writeEnvelope preserves the exact v2 bytes as backup before committing v3.
+    writeEnvelope(store, parsed.tasks);
+  }
+  return parsed.tasks;
 }
 
 export function saveTasks(tasks, storage = globalThis.localStorage) {
