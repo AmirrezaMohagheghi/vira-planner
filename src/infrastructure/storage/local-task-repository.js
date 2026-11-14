@@ -36,8 +36,9 @@ export function createLocalTaskRepository(options = {}) {
     return tasks;
   }
 
-  function matchesQuery(task, query) {
-    if (query === undefined) return true;
+  function validateQuery(query) {
+    if (query === undefined) return;
+
     if (!query || typeof query !== "object" || Array.isArray(query)) {
       throw new TypeError("TaskRepository list query must be an object.");
     }
@@ -47,6 +48,12 @@ export function createLocalTaskRepository(options = {}) {
       if (!supportedFilters.includes(key)) {
         throw new TypeError(`Unsupported TaskRepository list filter: ${key}.`);
       }
+    }
+  }
+
+  function matchesQuery(task, query) {
+    if (query === undefined) return true;
+    for (const key of Object.keys(query)) {
       if (task[key] !== query[key]) return false;
     }
     return true;
@@ -62,6 +69,7 @@ export function createLocalTaskRepository(options = {}) {
     },
 
     async list(query) {
+      validateQuery(query);
       return readCollection()
         .filter((task) => matchesQuery(task, query))
         .map((task) => structuredClone(task));
