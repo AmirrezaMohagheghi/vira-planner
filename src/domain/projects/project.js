@@ -26,6 +26,9 @@ export function validateProject(project) {
   if (!isOptionalString(project.description)) {
     throw new TypeError("Project description must be a string or null.");
   }
+  if (!isOptionalString(project.groupId)) {
+    throw new TypeError("Project groupId must be a string or null.");
+  }
   if (!PROJECT_STATUSES.has(project.status)) {
     throw new TypeError("Project status is invalid.");
   }
@@ -48,6 +51,7 @@ export function createProject(input, options = {}) {
     id: input.id ?? options.id ?? crypto.randomUUID(),
     name: input.name?.trim() ?? "",
     description: input.description ?? null,
+    groupId: input.groupId ?? null,
     status: input.status ?? "active",
     createdAt: input.createdAt ?? now,
     updatedAt: input.updatedAt ?? now,
@@ -62,7 +66,7 @@ export function updateProject(project, changes, options = {}) {
   }
 
   const allowedChanges = {};
-  for (const field of ["name", "description"]) {
+  for (const field of ["name", "description", "groupId"]) {
     if (Object.hasOwn(changes, field)) {
       allowedChanges[field] = field === "name" && typeof changes[field] === "string"
         ? changes[field].trim()
