@@ -32,6 +32,12 @@ test("creates an active Project with stable defaults", () => {
   });
 });
 
+test("supports an optional ProjectGroup reference", () => {
+  assert.equal(makeProject().groupId, null);
+  assert.equal(makeProject({ groupId: "group-1" }).groupId, "group-1");
+  assert.throws(() => makeProject({ groupId: 12 }), /groupId/);
+});
+
 test("trims the Project name and accepts an optional description", () => {
   const project = makeProject({ name: "  پروژه  ", description: "توضیح" });
   assert.equal(project.name, "پروژه");
@@ -51,12 +57,14 @@ test("updates only editable Project fields and increments its version", () => {
   const updated = updateProject(project, {
     name: "  نام تازه  ",
     description: "شرح تازه",
+    groupId: "group-1",
     status: "trashed",
     id: "changed"
   }, { now: "2026-11-14T11:00:00.000Z" });
 
   assert.equal(updated.name, "نام تازه");
   assert.equal(updated.description, "شرح تازه");
+  assert.equal(updated.groupId, "group-1");
   assert.equal(updated.status, "active");
   assert.equal(updated.id, "project-1");
   assert.equal(updated.version, 2);
