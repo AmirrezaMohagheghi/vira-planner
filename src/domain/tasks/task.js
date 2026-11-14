@@ -40,6 +40,9 @@ export function validateTask(task) {
   if (!isOptionalString(task.description)) {
     throw new TypeError("Task description must be a string or null.");
   }
+  if (!isOptionalString(task.projectId)) {
+    throw new TypeError("Task projectId must be a string or null.");
+  }
   if (!isValidDate(task.plannedDate)) {
     throw new TypeError("Task plannedDate must be a valid ISO date or null.");
   }
@@ -115,6 +118,7 @@ export function createTask(input, options = {}) {
     id: input.id ?? options.id ?? crypto.randomUUID(),
     title: input.title?.trim() ?? "",
     description: input.description ?? null,
+    projectId: input.projectId ?? null,
     plannedDate: input.plannedDate ?? input.date ?? null,
     startTime: input.startTime ?? input.time ?? null,
     endTime: input.endTime ?? null,
