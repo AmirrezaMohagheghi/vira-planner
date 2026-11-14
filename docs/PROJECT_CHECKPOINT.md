@@ -1506,3 +1506,40 @@ Vira Planner باید اپلیکیشن دسکتاپ مستقل و قابل نص�
 - پیش‌فرض طراحی: Task جدید به Project archived/trashed متصل نمی‌شود و انتقال به آن مجاز نیست تا زمانی که Project Restore شود؛ Detach همچنان مجاز است.
 - این مرحله فقط مستندات را تغییر داد؛ کد، dependency، schema ذخیره‌سازی و رفتار برنامه تغییر نکرد.
 - گام بعدی: ممیزی هدفمند فایل‌های Domain و تست‌های موجود برای تطبیق با این قرارداد؛ سپس اعلام دامنهٔ دقیق نخستین تغییر کد و روش آزمون برای دریافت اجازهٔ کاربر.
+
+
+---
+
+## نتیجهٔ ممیزی کد برای قرارداد Task / Project / ProjectGroup — 2026-11-14
+
+**دامنهٔ ممیزی:** فایل‌های Domain و Application مربوط به Task، adapter و storage، تست‌های Task و نقطهٔ اتصال `app.js` در شاخهٔ `foundation/architecture-v0-5`.
+
+### وضعیت واقعی مخزن
+- Domain فعلی فقط مدل Task و WorkSession/TimeEntry و تقویم را دارد؛ مدل Project و ProjectGroup هنوز وجود ندارد.
+- `src/domain/tasks/task.js` فیلد `projectId` ندارد و factory آن نیز این فیلد را تولید نمی‌کند.
+- `legacy-task-adapter.js` فهرست فیلدهای Canonical اجباری دارد؛ هر تغییر در قرارداد فیلدهای Task باید با سازگاری رکوردهای schema v2 هماهنگ شود.
+- `task-collection.js` فقط مجموعهٔ Task را مدیریت می‌کند؛ متد `remove` رکورد Task را از مجموعه حذف و ذخیره می‌کند. چرخهٔ عمر Project یا ارتباط Task–Project در آن وجود ندارد.
+- `local-task-storage.js` فقط Taskها را در envelope با `schemaVersion: 2` ذخیره می‌کند؛ migration و backup فعلی نیز مختص همان مجموعه است.
+- `app.js` فعلاً فقط Task Collection و نماهای Task/Calendar را راه‌اندازی می‌کند؛ Application API برای Project یا Group متصل نیست.
+- تست‌های موجود، رفتار Task، Collection، adapter و storage را پوشش می‌دهند؛ تستی برای Project، Group یا رابطهٔ Task–Project وجود ندارد.
+
+### پیامد فنی
+- افزودن `projectId` به Task بدون طراحی migration، خطر ناسازگاری رکوردهای ذخیره‌شدهٔ فعلی را دارد.
+- اضافه‌کردن Project و Group به UI پیش از Domain/Application و persistence، منطق را در Presentation پخش می‌کند و با مرزهای معماری مصوب ناسازگار است.
+- تغییر حذف Task به Archive/Trash نیز خارج از قرارداد فعلی و نیازمند تصمیم و طراحی مستقل است؛ در این مرحله نباید ناخواسته تغییر کند.
+
+### ترتیب اجرای پیشنهادی
+1. **Domain foundation:** افزودن مدل‌های خالص Project و ProjectGroup و تست اعتبارسنجی/چرخهٔ عمر، بدون تغییر schema ذخیره‌سازی یا UI.
+2. **Task association + migration:** افزودن ارجاع اختیاری Task به Project و Project به Group همراه با migration نسخه‌دار و حفظ backup؛ آزمون سازگاری داده‌های فعلی.
+3. **Application relationship use cases:** ساخت عملیات Create/Update/Archive/Trash/Restore/Delete و Attach/Detach/Move با اعتبارسنجی ارجاع و ثبت تاریخچه.
+4. **Persistence integration:** ذخیره‌سازی مجموعه‌های مستقل Project/Group و مرز سازگار برای تغییر چند موجودیت؛ انتخاب adapter متناسب با نیاز واقعی.
+5. **Presentation:** پس از پایدارشدن منطق، اتصال UI.
+
+### نخستین تغییر کد پیشنهادی برای تأیید
+- افزودن فایل‌های جدید `src/domain/projects/project.js` و `src/domain/projects/project-group.js`.
+- افزودن تست‌های واحد جدید در `tests/unit/projects-domain.test.js` و `tests/unit/project-group-domain.test.js`.
+- دامنهٔ این مرحله فقط factory/validation و transitionهای خالص چرخهٔ عمر Project/Group مطابق قرارداد ثبت‌شده است.
+- فایل‌های Task، Application، Infrastructure، UI و schema ذخیره‌سازی در این مرحله تغییر نمی‌کنند.
+- روش بررسی: اجرای `npm.cmd test` و بررسی تست‌های جدید/قدیمی؛ سپس گزارش نتیجه بدون ادعای اجرای محلی مگر آنکه کاربر آن را اجرا کند.
+- ریسک: پایین؛ فایل‌های جدید و مستقل‌اند و هیچ دادهٔ فعلی یا مسیر اجرایی برنامه را تغییر نمی‌دهند.
+- این مرحله هنوز اجرا نشده و به‌عنوان پیشنهاد نیازمند اجازهٔ صریح برای تغییر کد ثبت می‌شود.
