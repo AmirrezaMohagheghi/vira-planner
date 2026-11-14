@@ -95,6 +95,33 @@ test("preserves all canonical fields when converting through the legacy shape", 
   assert.equal(storedShape.done, false);
 });
 
+test("accepts older complete canonical records without the optional projectId field", () => {
+  const canonical = {
+    id: "canonical-v2",
+    title: "رکورد قدیمی",
+    description: null,
+    plannedDate: null,
+    startTime: null,
+    endTime: null,
+    durationMinutes: null,
+    deadline: null,
+    priority: "medium",
+    categoryId: "personal",
+    status: "todo",
+    progress: 0,
+    dependencyIds: [],
+    parentTaskId: null,
+    recurrenceRuleId: null,
+    reminderIds: [],
+    createdAt: fixedNow,
+    updatedAt: fixedNow,
+    source: "user",
+    version: 1
+  };
+
+  assert.equal(fromLegacyTask(canonical, { now: fixedNow }).projectId, null);
+});
+
 test("canonical fields take precedence over legacy aliases in a complete mixed record", () => {
   const task = fromLegacyTask({
     id: "mixed-1",
