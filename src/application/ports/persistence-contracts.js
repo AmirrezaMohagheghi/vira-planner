@@ -70,7 +70,7 @@ function assertMethods(candidate, methods, contractName) {
   for (const method of methods) {
     if (typeof candidate[method] !== "function") {
       throw new TypeError(
-        `${contractName} requires a ${method}() function.`
+        `${contractName} requires ${method === "append" ? "an" : "a"} ${method}() function.`
       );
     }
   }
