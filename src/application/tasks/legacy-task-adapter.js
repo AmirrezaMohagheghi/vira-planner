@@ -4,7 +4,6 @@ const CANONICAL_REQUIRED_FIELDS = Object.freeze([
   "id",
   "title",
   "description",
-  "projectId",
   "plannedDate",
   "startTime",
   "endTime",
