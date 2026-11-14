@@ -64,7 +64,7 @@ test("migrates legacy storage and round-trips collection changes through the can
   assert.deepEqual(update, { ok: true });
 
   const envelope = JSON.parse(storage.getItem(taskStorageKeys.current));
-  assert.equal(envelope.schemaVersion, 2);
+  assert.equal(envelope.schemaVersion, 3);
   assert.equal(envelope.tasks[0].title, "عنوان به‌روزشده");
   assert.equal(envelope.tasks[0].plannedDate, "2026-11-12");
   assert.equal(envelope.tasks[0].importedLabel, "preserve-me");
