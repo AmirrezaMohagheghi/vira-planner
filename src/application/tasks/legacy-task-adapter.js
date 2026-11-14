@@ -60,7 +60,7 @@ export function fromLegacyTask(legacyTask, options = {}) {
       );
     }
 
-    const canonical = { ...legacyTask };
+    const canonical = { ...legacyTask, projectId: legacyTask.projectId ?? null };
     delete canonical.date;
     delete canonical.time;
     delete canonical.category;
