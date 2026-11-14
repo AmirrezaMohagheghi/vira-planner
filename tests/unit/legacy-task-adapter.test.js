@@ -25,6 +25,18 @@ test("maps a current prototype task to the canonical domain model", () => {
   assert.equal(task.startTime, "09:30");
   assert.equal(task.categoryId, "study");
   assert.equal(task.status, "todo");
+  assert.equal(task.projectId, null);
+});
+
+test("preserves an optional projectId through canonical and legacy conversion", () => {
+  const task = fromLegacyTask({
+    id: "linked-1",
+    title: "متصل به پروژه",
+    projectId: "project-1"
+  }, { now: fixedNow });
+
+  assert.equal(task.projectId, "project-1");
+  assert.equal(fromLegacyTask(toLegacyTask(task), { now: fixedNow }).projectId, "project-1");
 });
 
 test("maps empty legacy date and time values to null", () => {
