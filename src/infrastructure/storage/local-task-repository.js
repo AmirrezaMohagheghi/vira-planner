@@ -86,6 +86,20 @@ export function createLocalTaskRepository(options = {}) {
         .map((task) => structuredClone(task));
     },
 
+    async delete(id) {
+      if (typeof id !== "string" || id.trim() === "") {
+        throw new TypeError("TaskRepository id must be a non-empty string.");
+      }
+
+      const tasks = readCollection();
+      const index = tasks.findIndex((item) => item.id === id);
+      if (index === -1) return false;
+
+      tasks.splice(index, 1);
+      writeTasks(tasks);
+      return true;
+    },
+
     async save(task) {
       validateTask(task);
       const tasks = readCollection();
