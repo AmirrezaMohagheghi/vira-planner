@@ -1584,3 +1584,30 @@ Vira Planner باید اپلیکیشن دسکتاپ مستقل و قابل نص�
 - سندهای مرجع و تقدم آن‌ها نیز مشخص شده‌اند: Product Blueprint برای جهت کلان، Product Spec برای رفتار محصول، Architecture برای قرارداد فنی، Market Research برای شواهد و Checkpoint برای وضعیت واقعی پیاده‌سازی.
 - هیچ فایل کد، schema، dependency یا رفتار اجرایی در این مرحله تغییر نکرده است.
 - **گام اجرایی بعدی:** کاربر تغییرات شاخه را با `git pull origin foundation/architecture-v0-5` دریافت کند و `npm.cmd test` را اجرا کند؛ نتیجهٔ تست‌های جدید Domain را ارسال کند. پس از تأیید تست‌ها، ادامهٔ کار روی association و migration مربوط به Task–Project–ProjectGroup برنامه‌ریزی می‌شود.
+
+
+---
+
+## اجرای مرحلهٔ دوم: ارجاع‌های اختیاری و مهاجرت Storage — 2026-11-14
+
+**Branch:** `foundation/architecture-v0-5`  
+**وضعیت:** تغییرات ثبت شده‌اند؛ تست محلی هنوز نیازمند اجرای کاربر است.
+
+### تغییرات
+- `src/domain/tasks/task.js`: افزودن `projectId` اختیاری با مقدار پیش‌فرض null و اعتبارسنجی.
+- `src/domain/projects/project.js`: افزودن `groupId` اختیاری، اعتبارسنجی و پشتیبانی update.
+- `src/application/tasks/legacy-task-adapter.js`: نگهداری `projectId` در تبدیل‌ها؛ این فیلد در رکوردهای canonical قدیمی اجباری نیست.
+- `src/infrastructure/storage/local-task-storage.js`: ارتقای schema از 2 به 3؛ مهاجرت خودکار envelope نسخهٔ 2 به نسخهٔ 3 با مقداردهی null برای ارجاع خالی، Backup بایت‌به‌بایت نسخهٔ قبلی و verification.
+- تست‌های Domain، Adapter و Storage برای حالت‌های جدید و سازگاری عقب‌رو توسعه یافتند.
+
+### مرز این مرحله
+- عملیات Application برای Attach/Detach/Move هنوز ساخته نشده‌اند.
+- Project و ProjectGroup هنوز persistence مستقل ندارند و UI تغییر نکرده است.
+- هیچ dependency جدیدی اضافه نشده است.
+- migration فقط هنگام خواندن envelope نسخهٔ 2 انجام می‌شود؛ raw-array نسخهٔ 1 همچنان طبق مسیر قبلی توسط Application normalize و سپس ذخیره می‌شود.
+- شکست validation پیش از نوشتن، دادهٔ اصلی را دست‌نخورده می‌گذارد.
+
+### بررسی لازم
+- کاربر باید شاخه را pull کند و `npm.cmd test` را اجرا کند.
+- نتیجهٔ تست محلی تا دریافت خروجی کاربر تأییدشده محسوب نمی‌شود.
+- گام بعد پس از تست سبز: طراحی و پیاده‌سازی Application use caseهای رابطه و تاریخچه، با مرز تراکنش روشن.
