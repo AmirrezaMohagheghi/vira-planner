@@ -107,6 +107,42 @@ test("updates an existing task instead of creating a duplicate", async () => {
   assert.equal(readStored()[0].title, "Updated title");
 });
 
+test("deletes an existing task and persists the remaining collection", async () => {
+  const existing = [task("task-1"), task("task-2")];
+  const { repository, readStored } = createMemoryRepository(existing);
+
+  assert.equal(await repository.delete("task-1"), true);
+  assert.deepEqual(readStored(), [existing[1]]);
+});
+
+test("returns false without writing when deleting an unknown task", async () => {
+  let writeCount = 0;
+  const repository = createLocalTaskRepository({
+    loadTasks: () => [],
+    saveTasks: () => { writeCount += 1; }
+  });
+
+  assert.equal(await repository.delete("missing"), false);
+  assert.equal(writeCount, 0);
+});
+
+test("rejects an invalid delete id", async () => {
+  const { repository } = createMemoryRepository();
+  await assert.rejects(
+    repository.delete(" "),
+    /id must be a non-empty string/
+  );
+});
+
+test("propagates delete storage write failures", async () => {
+  const repository = createLocalTaskRepository({
+    loadTasks: () => [task("task-1")],
+    saveTasks: () => { throw new Error("delete write failed"); }
+  });
+
+  await assert.rejects(repository.delete("task-1"), /delete write failed/);
+});
+
 test("rejects an invalid task without writing", async () => {
   let writeCount = 0;
   const repository = createLocalTaskRepository({
