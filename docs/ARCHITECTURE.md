@@ -1268,3 +1268,142 @@ Use caseهای مرتبط با چند موجودیت باید تمام اعتب�
 
 ### ۲۰.۶ تقدم این تصمیم بر یادداشت‌های قدیمی‌تر
 این بخش تصمیم فعلی محدودهٔ پلتفرم و جهت معماری است و هر اشارهٔ قدیمی‌تر به «فقط دسکتاپ Windows»، «macOS به‌عنوان پلتفرم بعدی»، «Sync خارج از هدف محصول» یا «وب‌اپلیکیشن به‌عنوان مقصد نهایی» را در صورت تعارض supersede می‌کند. این بخش انتخاب نهایی Shell، پایگاه داده، Backend یا مجوز تغییر فوری کد محسوب نمی‌شود.
+
+---
+
+## ۲۱. قراردادهای Persistence — Repository، Unit of Work و Storage Adapter
+
+**وضعیت: طراحی هدف تأییدشده؛ هنوز پیاده‌سازی نشده است.** این بخش قراردادهای سطح Application و مرز Infrastructure را تعریف می‌کند. انتخاب دیتابیس، ساخت Adapter نهایی و تغییر کد به تأیید و آزمون جداگانه نیاز دارند.
+
+### ۲۱.۱ اصول طراحی
+
+1. Domain و Application به API یک دیتابیس، LocalStorage، فایل‌سیستم یا API سیستم‌عامل وابسته نیستند.
+2. Application از قراردادهای محدود و مشخص Repository و Unit of Work استفاده می‌کند؛ Infrastructure پیاده‌سازی آن‌ها را فراهم می‌کند.
+3. همهٔ قراردادهای I/O از ابتدا asynchronous و Promise-based هستند تا پیاده‌سازی‌های محلی و آینده بدون تغییر شکل قرارداد پشتیبانی شوند.
+4. Repository مسئول خواندن و نوشتن داده است، نه اجرای قواعد چرخهٔ عمر یا تصمیم‌گیری دامنه.
+5. اعتبارسنجی، مجوزها و قواعد تغییر روابط در Domain/Application باقی می‌مانند.
+6. Repositoryهای مورد استفاده در یک عملیات چندموجودیتی باید از همان محدودهٔ Unit of Work دریافت شوند.
+7. هیچ تضمین atomicity نباید برای Adapter فاقد تراکنش واقعی ادعا شود.
+
+### ۲۱.۲ قراردادهای Repository
+
+قراردادهای مفهومی نسخهٔ اول:
+
+**TaskRepository**
+- `getById(id)`: بازیابی یک Task یا مقدار تهی.
+- `list(query?)`: فهرست Taskها با فیلترهای محدود و تعریف‌شده.
+- `listByProjectId(projectId)`: بازیابی Taskهای مرتبط با Project؛ برای عملیات چرخهٔ عمر Project لازم است.
+- `save(task)`: ایجاد یا به‌روزرسانی رکورد با شناسهٔ پایدار؛ ذخیرهٔ دوبارهٔ همان نسخه نباید رکورد تکراری بسازد.
+
+**ProjectRepository**
+- `getById(id)`
+- `list(query?)`
+- `listByGroupId(groupId)`
+- `save(project)`
+
+**ProjectGroupRepository**
+- `getById(id)`
+- `list(query?)`
+- `save(group)`
+
+**TaskProjectLinkHistoryRepository**
+- `append(event)`: افزودن رویداد جدید؛ شناسهٔ رویداد باید یکتا باشد.
+- `listByTask(taskId)`: بازیابی رویدادهای رابطه برای یک Task، با ترتیب پایدار و قابل تعریف.
+
+قواعد مشترک:
+- شناسهٔ تکراری نباید باعث ایجاد رکورد دوم شود؛ semantics ذخیره‌سازی باید برای هر Adapter یکسان و مستند باشد.
+- Queryها محدود و نوع‌دارند؛ Application به query language یا API عمومی دیتابیس دسترسی نمی‌گیرد.
+- تاریخچه append-only است؛ قرارداد عمومی برای ویرایش یا حذف رویدادهای ثبت‌شده ارائه نمی‌شود.
+- Repository چرخهٔ عمر موجودیت را تعیین نمی‌کند. Archive، Trash، Restore و Permanent Delete از use caseهای Application عبور می‌کنند.
+- حذف فیزیکی فقط درون عملیات Application مجاز و پس از اجرای سیاست چرخهٔ عمر است؛ API حذف عمومی برای Presentation ارائه نمی‌شود.
+- Task مستقل مجاز است؛ بنابراین `projectId` می‌تواند تهی باشد. هیچ Repository یا موجودیت TaskGroup جداگانه‌ای تعریف نمی‌شود.
+
+### ۲۱.۳ قرارداد Unit of Work
+
+شکل مفهومی:
+
+```js
+await unitOfWork.execute(async (repositories) => {
+  await repositories.tasks.save(updatedTask);
+  await repositories.taskProjectHistory.append(historyEvent);
+});
+```
+
+- callback فقط Repositoryهای متعلق به همان transaction را دریافت می‌کند.
+- همهٔ عملیات داخل callback باید در یک مرز تراکنش مشترک اجرا شوند.
+- در صورت موفقیت callback، Adapter عملیات را commit می‌کند و نتیجه را برمی‌گرداند.
+- در صورت throw یا reject شدن callback یا شکست commit، Adapter باید rollback واقعی انجام دهد و خطا را به caller منتقل کند.
+- Repositoryهای transaction-scoped نباید پس از پایان callback نگهداری یا استفاده شوند.
+- Nested transaction در نسخهٔ اول پشتیبانی نمی‌شود؛ تلاش برای اجرای تو‌در‌تو باید با خطای مشخص رد شود.
+- خطاها نباید بلعیده شوند یا به نتیجهٔ موفق تبدیل شوند.
+- این قرارداد تضمین رفتاری مورد انتظار را تعریف می‌کند؛ پیاده‌سازی آن فقط روی Adapter دارای transaction واقعی می‌تواند atomicity کامل ارائه کند.
+
+### ۲۱.۴ عملیات چندموجودیتی الزامی
+
+**انتقال Task از Project A به Project B**
+1. بازیابی و اعتبارسنجی Task و Project مقصد در Application.
+2. اجرای قواعد رابطه و چرخهٔ عمر Project.
+3. ذخیرهٔ Task با `projectId` جدید.
+4. افزودن رویداد `moved` به تاریخچه.
+5. commit هر دو تغییر در یک Unit of Work.
+
+اگر هر بخش شکست بخورد، نه تغییر Task و نه رویداد تاریخچه نباید به‌تنهایی باقی بماند.
+
+**حذف دائمی Project**
+1. بازیابی Project و Taskهای مرتبط.
+2. اجرای سیاست Permanent Delete و بررسی مجوز/تأیید در Application.
+3. پاک‌کردن `projectId` در Taskهای مرتبط؛ Taskها حذف نمی‌شوند.
+4. حذف رکورد Project طبق سیاست چرخهٔ عمر.
+5. ثبت تغییرات لازم برای سازگاری و قابلیت ردیابی؛ طراحی Change Log مربوط به Sync در مرحلهٔ مستقل انجام می‌شود.
+6. commit همهٔ تغییرات در یک Unit of Work.
+
+**حذف ProjectGroup**
+1. بازیابی Group و Projectهای عضو.
+2. تهی‌کردن `groupId` در Projectهای عضو.
+3. حذف رکورد Group.
+4. commit همهٔ تغییرات در یک Unit of Work.
+
+Archive یا Trash کردن Project با Permanent Delete متفاوت است و نباید رابطه‌های زنده را پاک کند.
+
+### ۲۱.۵ Storage Adapter و مرز پلتفرم
+
+- Infrastructure یک پیاده‌سازی Repository و Unit of Work ارائه می‌کند که جزئیات ذخیره‌سازی را پشت قراردادها پنهان می‌کند.
+- Composition Root یا نقطهٔ مونتاژ برنامه، Adapter مناسب را انتخاب و به Application تزریق می‌کند.
+- Application نباید تشخیص دهد که برنامه روی Windows یا Android اجرا می‌شود و نباید مستقیماً به `window.localStorage`، فایل‌سیستم یا API بومی دسترسی داشته باشد.
+- Platform Adapter مسئول جزئیات مختص سیستم‌عامل، مسیر و مجوز فایل، Secure Storage و یکپارچگی با چرخهٔ عمر برنامه است.
+- Adapter باید semantics یکسانی برای Repositoryها و Unit of Work فراهم کند؛ تفاوت‌های واقعی پلتفرم باید مستند و آزموده شوند.
+- LocalStorage فعلی به‌عنوان پیاده‌سازی prototype/legacy شناخته می‌شود. تا وقتی تراکنش واقعی ندارد، نباید به‌عنوان پیاده‌سازی کامل Unit of Work معرفی شود.
+- Backup، Restore، serialization، schema validation و migration در Infrastructure قرار می‌گیرند؛ migrationها باید مستقل، آزمون‌پذیر، نسخه‌دار و همراه با حفظ دادهٔ خام و بررسی read-back باشند.
+
+### ۲۱.۶ هم‌زمانی و آمادگی برای Sync
+
+- در نسخهٔ local-first، Adapter باید دست‌کم از نوشتن هم‌زمان ناسازگار در یک فرایند جلوگیری کند و در صورت پشتیبانی مدل، کنترل نسخهٔ خوش‌بینانه را اعمال کند.
+- تعارض میان چند دستگاه، مسئولیت Sync Engine آینده است و نباید با تراکنش محلی Unit of Work یکی گرفته شود.
+- Repositoryها مستقیماً با سرویس ابری ارتباط نمی‌گیرند.
+- شناسهٔ دستگاه، Change Log، tombstone، idempotency، conflict resolution و رمزنگاری Sync در طراحی مستقل Sync تعریف می‌شوند؛ این قرارداد به‌تنهایی به معنی پیاده‌سازی Sync نیست.
+- وجود فیلد version در همهٔ موجودیت‌ها نباید فرض شود؛ پیش از استفاده از optimistic concurrency باید مدل فعلی Task، Project و ProjectGroup و semantics نسخهٔ آن‌ها جداگانه بررسی شود.
+
+### ۲۱.۷ معیارهای پذیرش قرارداد
+
+1. Application می‌تواند Task، Project، ProjectGroup و تاریخچه را فقط از طریق قراردادهای تعریف‌شده بخواند و بنویسد.
+2. انتقال Task و ثبت تاریخچه در یک transaction موفق یا ناموفق می‌شوند.
+3. Permanent Delete کردن Project، Taskها را حفظ و ارجاع آن‌ها را تهی می‌کند.
+4. حذف Group، Projectها و Taskها را حفظ و فقط عضویت Group را پاک می‌کند.
+5. خطاهای ذخیره‌سازی و commit به Application گزارش می‌شوند و موفقیت کاذب ایجاد نمی‌شود.
+6. Repositoryهای transaction-scoped پس از پایان Unit of Work قابل استفاده نیستند.
+7. هستهٔ Domain/Application بدون وابستگی به API اختصاصی Windows، Android یا دیتابیس قابل آزمون است.
+8. Adapter فاقد تراکنش واقعی، صریحاً به‌عنوان محدودیت شناخته می‌شود و atomicity کامل را ادعا نمی‌کند.
+
+### ۲۱.۸ ترتیب پیاده‌سازی و ریسک گذار
+
+1. تطبیق قراردادها با مدل‌های واقعی Domain و use caseهای فعلی.
+2. تعریف interfaceهای async و آزمون‌های قراردادی Repository و Unit of Work.
+3. ساخت یک proof of concept برای Adapter و اثبات تراکنش واقعی روی Windows و Android.
+4. مقایسهٔ گزینه‌های ذخیره‌سازی، از جمله SQLite، بر اساس سازگاری binding/driver، transaction، migration، backup/restore، امنیت، packaging و نگهداری؛ در این مرحله انتخاب فناوری قطعی می‌شود.
+5. انتقال تدریجی callsiteهای فعلی از توابع sync و LocalStorage به قراردادهای async، با حفظ مسیر migration و backup.
+6. افزودن persistence برای Project، ProjectGroup و تاریخچه، سپس اجرای آزمون‌های integration و بازیابی داده.
+
+**ریسک اصلی گذار:** تغییر قراردادهای فعلی از عملیات ساده و عمدتاً sync به قراردادهای async و transaction-scoped، نیازمند refactor کنترل‌شدهٔ Application و تست‌های integration است. این طراحی به‌تنهایی مجوز تغییر کد، حذف LocalStorage یا انتخاب SQLite نیست.
+
+**یادداشت سازگاری مستندات:** در بخش ۵ این سند هنوز شرح قدیمی schemaVersion 2 دیده می‌شود؛ ممیزی کد فعلی نسخهٔ 3 را مشاهده کرده است. اصلاح شرح مهاجرت و schemaVersion باید در یک اصلاح مستنداتی مستقل و پس از تطبیق کامل با کد انجام شود.
+
