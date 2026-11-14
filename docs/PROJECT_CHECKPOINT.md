@@ -1543,3 +1543,27 @@ Vira Planner باید اپلیکیشن دسکتاپ مستقل و قابل نص�
 - روش بررسی: اجرای `npm.cmd test` و بررسی تست‌های جدید/قدیمی؛ سپس گزارش نتیجه بدون ادعای اجرای محلی مگر آنکه کاربر آن را اجرا کند.
 - ریسک: پایین؛ فایل‌های جدید و مستقل‌اند و هیچ دادهٔ فعلی یا مسیر اجرایی برنامه را تغییر نمی‌دهند.
 - این مرحله هنوز اجرا نشده و به‌عنوان پیشنهاد نیازمند اجازهٔ صریح برای تغییر کد ثبت می‌شود.
+
+
+---
+
+## اجرای مرحلهٔ اول Domain برای Project و ProjectGroup — 2026-11-14
+
+**وضعیت: فایل‌ها ثبت شدند؛ اجرای تست‌ها هنوز در محیط محلی کاربر تأیید نشده است.**
+
+### فایل‌های افزوده‌شده
+- `src/domain/projects/project.js`: مدل خالص Project شامل factory، validation، update و transitionهای Archive / Restore / Trash / Restore from Trash.
+- `src/domain/projects/project-group.js`: مدل خالص ProjectGroup شامل factory، validation، rename و reorder.
+- `tests/unit/projects-domain.test.js`: تست‌های ایجاد، اعتبارسنجی، update، چرخهٔ عمر و عدم mutation مدل Project.
+- `tests/unit/project-group-domain.test.js`: تست‌های ایجاد، اعتبارسنجی، rename، reorder و عدم mutation مدل ProjectGroup.
+
+### مرز این مرحله
+- هیچ فایل Task، Application، Infrastructure، Presentation یا storage schema تغییر نکرد.
+- هیچ رابطهٔ `projectId` یا `groupId` در این مرحله به مدل Task/Project افزوده نشد؛ این کار به مرحلهٔ بعد و migration نسخه‌دار تعلق دارد.
+- هیچ دادهٔ ذخیره‌شده‌ای دست‌کاری یا مهاجرت داده نشد.
+- هیچ dependency جدیدی اضافه نشد.
+
+### بررسی و وضعیت
+- چهار فایل جدید با GitHub Contents API روی شاخهٔ `foundation/architecture-v0-5` ثبت شدند.
+- تست‌ها نوشته شده‌اند اما هنوز `npm.cmd test` در محیط محلی اجرا و تأیید نشده است؛ بنابراین نتیجهٔ سبز تست‌ها ادعا نمی‌شود.
+- گام بعد: کاربر در محیط محلی شاخه را به‌روز کند و `npm.cmd test` را اجرا کند؛ پس از تأیید، مرحلهٔ بعد طراحی association و migration خواهد بود.
