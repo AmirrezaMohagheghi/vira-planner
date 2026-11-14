@@ -12,6 +12,22 @@ function makeTask(overrides = {}) {
   }, { now: fixedNow });
 }
 
+test("creates tasks without a Project by default and accepts an optional Project reference", () => {
+  assert.equal(makeTask().projectId, null);
+  assert.equal(makeTask({ projectId: "project-1" }).projectId, "project-1");
+  assert.throws(() => makeTask({ projectId: 42 }), /projectId/);
+});
+
+test("updates the optional Project reference without mutating the original task", () => {
+  const task = makeTask();
+  const attached = updateTask(task, { projectId: "project-1" }, { now: fixedNow });
+  const detached = updateTask(attached, { projectId: null }, { now: fixedNow });
+
+  assert.equal(task.projectId, null);
+  assert.equal(attached.projectId, "project-1");
+  assert.equal(detached.projectId, null);
+});
+
 test("uses consistent default progress for every status", () => {
   assert.deepEqual(
     ["todo", "in_progress", "completed", "cancelled"].map((status) =>
