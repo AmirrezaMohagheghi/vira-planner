@@ -1,246 +1,206 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createTask } from "../../src/domain/tasks/task.js";
 import { createTaskCollection } from "../../src/application/tasks/task-collection.js";
 
-function createMemoryStore(initialTasks = []) {
-  let storedTasks = structuredClone(initialTasks);
-  return {
-    loadTasks() {
-      return structuredClone(storedTasks);
+function task(id, title = id) {
+  return createTask({ id, title });
+}
+
+function memoryRepository(initialTasks = [], overrides = {}) {
+  let stored = structuredClone(initialTasks);
+  const calls = { list: 0, save: 0, delete: 0 };
+  const repository = {
+    async getById(id) {
+      const found = stored.find((item) => item.id === id);
+      return found ? structuredClone(found) : null;
     },
-    saveTasks(tasks) {
-      storedTasks = structuredClone(tasks);
+    async list() {
+      calls.list += 1;
+      return structuredClone(stored);
     },
-    readStoredTasks() {
-      return structuredClone(storedTasks);
+    async listByProjectId(projectId) {
+      return stored.filter((item) => item.projectId === projectId);
+    },
+    async save(value) {
+      calls.save += 1;
+      const index = stored.findIndex((item) => item.id === value.id);
+      if (index < 0) stored.push(structuredClone(value));
+      else stored[index] = structuredClone(value);
+      return structuredClone(value);
+    },
+    async delete(id) {
+      calls.delete += 1;
+      const index = stored.findIndex((item) => item.id === id);
+      if (index < 0) return false;
+      stored.splice(index, 1);
+      return true;
     }
+  };
+  return {
+    repository: { ...repository, ...overrides },
+    calls,
+    read() { return structuredClone(stored); }
   };
 }
 
-function createCollection(store, overrides = {}) {
+function collection(store, overrides = {}) {
   return createTaskCollection({
-    loadTasks: store.loadTasks,
-    saveTasks: store.saveTasks,
-    createTask: (details) => ({ id: "created-1", ...details }),
-    updateTask: (task, changes) => ({ ...task, ...changes }),
+    taskRepository: store.repository,
+    createTask: (details) => ({ ...task("created-1", details.title), ...details, id: "created-1" }),
     ...overrides
   });
 }
 
-test("requires explicit storage dependencies", () => {
+test("requires a valid TaskRepository", () => {
+  assert.throws(() => createTaskCollection(), /TaskRepository must be an object/);
   assert.throws(
-    () => createTaskCollection(),
-    {
-      name: "TypeError",
-      message: "Task collection requires loadTasks and saveTasks functions."
-    }
-  );
-
-  assert.throws(
-    () => createTaskCollection({ loadTasks() { return []; } }),
-    /requires loadTasks and saveTasks functions/
+    () => createTaskCollection({ taskRepository: { list() {} } }),
+    /TaskRepository requires getById\(\) function/
   );
 });
 
-test("loads the initial task collection", () => {
-  const initial = [{ id: "task-1", title: "کار قبلی" }];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store);
-
-  assert.deepEqual(collection.getTasks(), initial);
-  assert.equal(collection.isStorageReady(), true);
+test("starts unavailable and initializes from the repository", async () => {
+  const store = memoryRepository([task("task-1", "کار قبلی")]);
+  const subject = collection(store);
+  assert.equal(subject.isStorageReady(), false);
+  assert.deepEqual(subject.getTasks(), []);
+  assert.deepEqual(await subject.initialize(), { ok: true });
+  assert.equal(subject.isStorageReady(), true);
+  assert.equal(subject.getTasks()[0].title, "کار قبلی");
+  assert.equal(subject.getTasks()[0].done, false);
+  assert.equal(store.calls.list, 1);
 });
 
-test("creates a task and persists it at the beginning of the collection", () => {
-  const initial = [{ id: "task-1", title: "کار قبلی" }];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store);
-
-  const result = collection.create({ title: "کار تازه" });
-
-  assert.deepEqual(result, { ok: true });
-  assert.deepEqual(collection.getTasks(), [
-    { id: "created-1", title: "کار تازه" },
-    ...initial
-  ]);
-  assert.deepEqual(store.readStoredTasks(), collection.getTasks());
-});
-
-test("updates and toggles tasks by id", () => {
-  const initial = [{ id: "task-1", title: "عنوان قبلی", done: false }];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store);
-
-  assert.deepEqual(collection.update("task-1", { title: "عنوان تازه" }), { ok: true });
-  assert.equal(collection.getTasks()[0].title, "عنوان تازه");
-
-  assert.deepEqual(collection.toggle("task-1", true), { ok: true });
-  assert.equal(collection.getTasks()[0].done, true);
-  assert.deepEqual(store.readStoredTasks(), collection.getTasks());
-});
-
-test("removes a task and persists the remaining collection", () => {
-  const initial = [
-    { id: "task-1", title: "حذف‌شدنی" },
-    { id: "task-2", title: "باقی‌مانده" }
-  ];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store);
-
-  assert.deepEqual(collection.remove("task-1"), { ok: true });
-  assert.deepEqual(collection.getTasks(), [initial[1]]);
-  assert.deepEqual(store.readStoredTasks(), [initial[1]]);
-});
-
-test("restores saved tasks and locks further changes after a persistence failure", () => {
-  const initial = [{ id: "task-1", title: "نسخهٔ ذخیره‌شده" }];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store, {
-    saveTasks() {
-      throw new Error("write blocked");
+test("shares one in-flight initialization request", async () => {
+  let resolveList;
+  let calls = 0;
+  const store = memoryRepository();
+  const repository = {
+    ...store.repository,
+    list() {
+      calls += 1;
+      return new Promise((resolve) => { resolveList = resolve; });
     }
-  });
-
-  const result = collection.create({ title: "ذخیره‌نشده" });
-
-  assert.equal(result.ok, false);
-  assert.equal(result.kind, "storage");
-  assert.match(result.error.message, /write blocked/);
-  assert.deepEqual(collection.getTasks(), initial);
-  assert.equal(collection.isStorageReady(), false);
-  assert.equal(collection.create({ title: "کار دیگر" }).ok, false);
+  };
+  const subject = createTaskCollection({ taskRepository: repository });
+  const first = subject.initialize();
+  const second = subject.initialize();
+  assert.equal(calls, 1);
+  resolveList([]);
+  assert.deepEqual(await first, { ok: true });
+  assert.deepEqual(await second, { ok: true });
 });
 
-test("keeps the last confirmed snapshot when both saving and recovery reading fail", () => {
-  const initial = [{ id: "task-1", title: "نسخهٔ مطمئن" }];
-  let loadCount = 0;
-  const writeError = new Error("write blocked");
-  const collection = createTaskCollection({
-    loadTasks() {
-      loadCount += 1;
-      if (loadCount === 1) return structuredClone(initial);
-      throw new Error("recovery read blocked");
-    },
-    saveTasks() {
-      throw writeError;
-    },
-    createTask: (details) => ({ id: "created-1", ...details })
-  });
-
-  const result = collection.create({ title: "تغییر ذخیره‌نشده" });
-
-  assert.equal(result.ok, false);
+test("locks mutations before initialization", async () => {
+  const store = memoryRepository();
+  const subject = collection(store);
+  const result = await subject.create({ title: "نباید ساخته شود" });
   assert.equal(result.kind, "storage");
-  assert.equal(result.error, writeError);
-  assert.deepEqual(collection.getTasks(), initial);
-  assert.equal(collection.isStorageReady(), false);
-  assert.equal(loadCount, 1);
+  assert.equal(store.calls.save, 0);
 });
 
-test("locks changes when the initial task data cannot be loaded", () => {
+test("locks the collection when initial loading fails", async () => {
   const error = new Error("read blocked");
-  const collection = createTaskCollection({
-    loadTasks() {
-      throw error;
-    },
-    saveTasks() {
-      assert.fail("storage must not be written when loading failed");
-    }
-  });
-
-  assert.deepEqual(collection.getTasks(), []);
-  assert.equal(collection.isStorageReady(), false);
-  assert.equal(collection.getStorageError(), error);
-  assert.equal(collection.create({ title: "کار تازه" }).error, error);
-});
-
-test("does not change the collection when task validation fails", () => {
-  const initial = [{ id: "task-1", title: "کار قبلی" }];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store, {
-    createTask() {
-      throw new Error("invalid task");
-    }
-  });
-
-  const result = collection.create({ title: "" });
-
-  assert.equal(result.ok, false);
-  assert.equal(result.kind, "validation");
-  assert.match(result.error.message, /invalid task/);
-  assert.deepEqual(collection.getTasks(), initial);
-  assert.deepEqual(store.readStoredTasks(), initial);
-});
-
-test("returns a validation failure when updating a task is invalid", () => {
-  const initial = [{ id: "task-1", title: "کار قبلی" }];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store, {
-    updateTask() {
-      throw new Error("invalid update");
-    }
-  });
-
-  const result = collection.update("task-1", { title: "" });
-
-  assert.equal(result.ok, false);
-  assert.equal(result.kind, "validation");
-  assert.match(result.error.message, /invalid update/);
-  assert.deepEqual(collection.getTasks(), initial);
-  assert.deepEqual(store.readStoredTasks(), initial);
-});
-
-test("returns a not-found result when updating an unknown task", () => {
-  const store = createMemoryStore();
-  const collection = createCollection(store);
-
-  assert.deepEqual(collection.update("missing", { title: "عنوان" }), {
-    ok: false,
-    kind: "not-found"
-  });
-});
-
-test("returns a snapshot that cannot mutate the internal collection", () => {
-  const initial = [{ id: "task-1", title: "عنوان اصلی" }];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store);
-
-  const snapshot = collection.getTasks();
-  snapshot[0].title = "عنوان دست‌کاری‌شده";
-  snapshot.push({ id: "task-2", title: "وظیفهٔ جعلی" });
-
-  assert.deepEqual(collection.getTasks(), initial);
-  assert.deepEqual(store.readStoredTasks(), initial);
-});
-
-
-test("returns a not-found result when removing an unknown task", () => {
-  const initial = [{ id: "task-1", title: "کار موجود" }];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store);
-
-  const result = collection.remove("missing");
-
-  assert.deepEqual(result, { ok: false, kind: "not-found" });
-  assert.deepEqual(collection.getTasks(), initial);
-  assert.deepEqual(store.readStoredTasks(), initial);
-});
-
-test("restores the collection when removing a task cannot be persisted", () => {
-  const initial = [{ id: "task-1", title: "کار موجود" }];
-  const store = createMemoryStore(initial);
-  const collection = createCollection(store, {
-    saveTasks() {
-      throw new Error("delete write blocked");
-    }
-  });
-
-  const result = collection.remove("task-1");
-
-  assert.equal(result.ok, false);
+  const store = memoryRepository([], { async list() { throw error; } });
+  const subject = collection(store);
+  const result = await subject.initialize();
   assert.equal(result.kind, "storage");
-  assert.match(result.error.message, /delete write blocked/);
-  assert.deepEqual(collection.getTasks(), initial);
-  assert.deepEqual(store.readStoredTasks(), initial);
-  assert.equal(collection.isStorageReady(), false);
+  assert.equal(result.error, error);
+  assert.equal(subject.getStorageError(), error);
+  assert.equal(subject.isStorageReady(), false);
+  assert.equal((await subject.create({ title: "کار" })).error, error);
+});
+
+test("rejects invalid list results and duplicate task ids", async () => {
+  const invalid = collection(memoryRepository([], { async list() { return null; } }));
+  assert.equal((await invalid.initialize()).kind, "storage");
+  const duplicate = task("same");
+  const repeated = collection(memoryRepository([duplicate, duplicate]));
+  assert.match((await repeated.initialize()).error.message, /Duplicate task id/);
+});
+
+test("creates and persists a task through the repository", async () => {
+  const store = memoryRepository();
+  const subject = collection(store);
+  await subject.initialize();
+  assert.deepEqual(await subject.create({ title: "کار تازه" }), { ok: true });
+  assert.equal(subject.getTasks()[0].title, "کار تازه");
+  assert.equal(store.read()[0].title, "کار تازه");
+  assert.equal(store.calls.save, 1);
+});
+
+test("updates and toggles tasks by id", async () => {
+  const store = memoryRepository([task("task-1", "قدیمی")]);
+  const subject = collection(store);
+  await subject.initialize();
+  assert.deepEqual(await subject.update("task-1", { title: "تازه" }), { ok: true });
+  assert.equal(subject.getTasks()[0].title, "تازه");
+  assert.deepEqual(await subject.toggle("task-1", true), { ok: true });
+  assert.equal(subject.getTasks()[0].done, true);
+  assert.equal(store.read()[0].status, "completed");
+});
+
+test("returns validation and not-found results without writing", async () => {
+  const store = memoryRepository([task("task-1")]);
+  const subject = collection(store, { updateTask() { throw new Error("invalid update"); } });
+  await subject.initialize();
+  assert.equal((await subject.update("task-1", {})).kind, "validation");
+  assert.equal((await subject.update("missing", {})).kind, "not-found");
+  assert.equal(store.calls.save, 0);
+});
+
+test("removes an existing task and handles a missing task", async () => {
+  const store = memoryRepository([task("task-1")]);
+  const subject = collection(store);
+  await subject.initialize();
+  assert.deepEqual(await subject.remove("task-1"), { ok: true });
+  assert.deepEqual(subject.getTasks(), []);
+  assert.equal(store.calls.delete, 1);
+  assert.equal((await subject.remove("task-1")).kind, "not-found");
+});
+
+test("preserves the confirmed snapshot and locks after save failure", async () => {
+  const error = new Error("write blocked");
+  const store = memoryRepository([task("task-1", "مطمئن")], { async save() { throw error; } });
+  const subject = collection(store);
+  await subject.initialize();
+  const result = await subject.create({ title: "ذخیره‌نشده" });
+  assert.equal(result.kind, "storage");
+  assert.equal(result.error, error);
+  assert.equal(subject.getTasks()[0].title, "مطمئن");
+  assert.equal(subject.isStorageReady(), false);
+  assert.equal((await subject.remove("task-1")).kind, "storage");
+});
+
+test("preserves the confirmed snapshot and locks after delete failure", async () => {
+  const error = new Error("delete blocked");
+  const store = memoryRepository([task("task-1", "مطمئن")], { async delete() { throw error; } });
+  const subject = collection(store);
+  await subject.initialize();
+  const result = await subject.remove("task-1");
+  assert.equal(result.kind, "storage");
+  assert.equal(result.error, error);
+  assert.equal(subject.getTasks()[0].title, "مطمئن");
+  assert.equal(subject.isStorageReady(), false);
+});
+
+test("serializes concurrent mutations without losing updates", async () => {
+  const store = memoryRepository([task("task-1", "اول")]);
+  const subject = collection(store);
+  await subject.initialize();
+  const first = subject.update("task-1", { title: "دوم" });
+  const second = subject.update("task-1", { description: "توضیح" });
+  assert.deepEqual(await Promise.all([first, second]), [{ ok: true }, { ok: true }]);
+  assert.equal(subject.getTasks()[0].title, "دوم");
+  assert.equal(subject.getTasks()[0].description, "توضیح");
+  assert.equal(store.calls.save, 2);
+});
+
+test("returns defensive task snapshots", async () => {
+  const subject = collection(memoryRepository([task("task-1", "اصلی")]));
+  await subject.initialize();
+  const snapshot = subject.getTasks();
+  snapshot[0].title = "دست‌کاری‌شده";
+  assert.equal(subject.getTasks()[0].title, "اصلی");
 });
