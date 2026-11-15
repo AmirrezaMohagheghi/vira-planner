@@ -2,8 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createTaskCollection } from "../../src/application/tasks/task-collection.js";
 import {
-  fromLegacyTasks,
-  toLegacyTasks
+  fromLegacyTasks
 } from "../../src/application/tasks/legacy-task-adapter.js";
 import {
   loadTasks,
@@ -24,7 +23,7 @@ class FakeStorage {
   }
 }
 
-test("migrates legacy storage and round-trips collection changes through the canonical model", () => {
+test("migrates legacy storage and round-trips collection changes through the canonical model", async () => {
   const legacyTasks = [{
     id: "legacy-1",
     title: "کار قدیمی",
@@ -40,27 +39,48 @@ test("migrates legacy storage and round-trips collection changes through the can
     [taskStorageKeys.current]: legacyRaw
   });
 
-  function loadForCollection() {
+  function loadCanonicalTasks() {
     const canonical = fromLegacyTasks(loadTasks(storage));
     migrateLegacyTasks(canonical, storage);
-    return toLegacyTasks(canonical);
+    return canonical;
   }
 
-  function saveFromCollection(tasks) {
-    saveTasks(fromLegacyTasks(tasks), storage);
-  }
+  const taskRepository = {
+    async getById(id) {
+      return loadCanonicalTasks().find((task) => task.id === id) ?? null;
+    },
+    async list() {
+      return loadCanonicalTasks();
+    },
+    async listByProjectId(projectId) {
+      return loadCanonicalTasks().filter((task) => task.projectId === projectId);
+    },
+    async save(task) {
+      const tasks = loadCanonicalTasks();
+      const index = tasks.findIndex((item) => item.id === task.id);
+      if (index < 0) tasks.push(task);
+      else tasks[index] = task;
+      saveTasks(tasks, storage);
+      return task;
+    },
+    async delete(id) {
+      const tasks = loadCanonicalTasks();
+      const remaining = tasks.filter((task) => task.id !== id);
+      if (remaining.length === tasks.length) return false;
+      saveTasks(remaining, storage);
+      return true;
+    }
+  };
 
-  const collection = createTaskCollection({
-    loadTasks: loadForCollection,
-    saveTasks: saveFromCollection
-  });
-
+  const collection = createTaskCollection({ taskRepository });
+  assert.equal(collection.isStorageReady(), false);
+  assert.deepEqual(await collection.initialize(), { ok: true });
   assert.equal(collection.isStorageReady(), true);
   assert.equal(collection.getTasks()[0].plannedDate, "2026-11-12");
   assert.equal(collection.getTasks()[0].importedLabel, "preserve-me");
   assert.equal(storage.getItem(taskStorageKeys.backup), legacyRaw);
 
-  const update = collection.update("legacy-1", { title: "عنوان به‌روزشده" });
+  const update = await collection.update("legacy-1", { title: "عنوان به‌روزشده" });
   assert.deepEqual(update, { ok: true });
 
   const envelope = JSON.parse(storage.getItem(taskStorageKeys.current));
