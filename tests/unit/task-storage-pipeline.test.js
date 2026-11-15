@@ -10,6 +10,7 @@ import {
   migrateLegacyTasks,
   taskStorageKeys
 } from "../../src/infrastructure/storage/local-task-storage.js";
+import { createLocalTaskRepository } from "../../src/infrastructure/storage/local-task-repository.js";
 
 class FakeStorage {
   constructor(initial = {}) {
@@ -23,7 +24,7 @@ class FakeStorage {
   }
 }
 
-test("migrates legacy storage and round-trips collection changes through the canonical model", async () => {
+test("migrates legacy storage and round-trips collection changes through the concrete local repository", async () => {
   const legacyTasks = [{
     id: "legacy-1",
     title: "کار قدیمی",
@@ -40,39 +41,17 @@ test("migrates legacy storage and round-trips collection changes through the can
   });
 
   function loadCanonicalTasks() {
-    const canonical = fromLegacyTasks(loadTasks(storage));
-    migrateLegacyTasks(canonical, storage);
-    return canonical;
+    const canonicalTasks = fromLegacyTasks(loadTasks(storage));
+    migrateLegacyTasks(canonicalTasks, storage);
+    return canonicalTasks;
   }
 
-  const taskRepository = {
-    async getById(id) {
-      return loadCanonicalTasks().find((task) => task.id === id) ?? null;
-    },
-    async list() {
-      return loadCanonicalTasks();
-    },
-    async listByProjectId(projectId) {
-      return loadCanonicalTasks().filter((task) => task.projectId === projectId);
-    },
-    async save(task) {
-      const tasks = loadCanonicalTasks();
-      const index = tasks.findIndex((item) => item.id === task.id);
-      if (index < 0) tasks.push(task);
-      else tasks[index] = task;
-      saveTasks(tasks, storage);
-      return task;
-    },
-    async delete(id) {
-      const tasks = loadCanonicalTasks();
-      const remaining = tasks.filter((task) => task.id !== id);
-      if (remaining.length === tasks.length) return false;
-      saveTasks(remaining, storage);
-      return true;
-    }
-  };
-
+  const taskRepository = createLocalTaskRepository({
+    loadTasks: loadCanonicalTasks,
+    saveTasks: (tasks) => saveTasks(tasks, storage)
+  });
   const collection = createTaskCollection({ taskRepository });
+
   assert.equal(collection.isStorageReady(), false);
   assert.deepEqual(await collection.initialize(), { ok: true });
   assert.equal(collection.isStorageReady(), true);
