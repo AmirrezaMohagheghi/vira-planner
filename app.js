@@ -1,12 +1,12 @@
 import { createTaskCollection } from "./src/application/tasks/task-collection.js";
+import { createLocalTaskRepository } from "./src/infrastructure/storage/local-task-repository.js";
 import {
   loadTasks as loadStoredTasks,
   saveTasks as saveStoredTasks,
   migrateLegacyTasks
 } from "./src/infrastructure/storage/local-task-storage.js";
 import {
-  fromLegacyTasks,
-  toLegacyTasks
+  fromLegacyTasks
 } from "./src/application/tasks/legacy-task-adapter.js";
 import {
   isoToDate,
@@ -40,20 +40,18 @@ const storageWarning = document.querySelector("#storage-warning");
 
 const persianNumber = new Intl.NumberFormat("fa-IR");
 
-function loadTasksForCollection() {
+function loadCanonicalTasksForRepository() {
   const canonicalTasks = fromLegacyTasks(loadStoredTasks());
   migrateLegacyTasks(canonicalTasks);
-  return toLegacyTasks(canonicalTasks);
+  return canonicalTasks;
 }
 
-function saveTasksFromCollection(tasks) {
-  saveStoredTasks(fromLegacyTasks(tasks));
-}
-
-const taskCollection = createTaskCollection({
-  loadTasks: loadTasksForCollection,
-  saveTasks: saveTasksFromCollection
+const taskRepository = createLocalTaskRepository({
+  loadTasks: loadCanonicalTasksForRepository,
+  saveTasks: saveStoredTasks
 });
+
+const taskCollection = createTaskCollection({ taskRepository });
 
 function lockStorage(error) {
   storageWarning.hidden = false;
@@ -74,10 +72,6 @@ function handleTaskOperationFailure(result) {
     storageWarning.hidden = false;
     storageWarning.textContent = `اطلاعات واردشده معتبر نیست: ${result.error.message}`;
   }
-}
-
-if (!taskCollection.isStorageReady()) {
-  lockStorage(taskCollection.getStorageError());
 }
 
 let editingTaskId = null;
@@ -125,32 +119,35 @@ function startEditingTask(task) {
   taskFormView.startEditing(task);
 }
 
-taskForm.addEventListener("submit", (event) => {
+taskForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!taskCollection.isStorageReady()) return;
+  if (!taskCollection.isStorageReady() || submitTaskButton.disabled) return;
   const taskDetails = taskFormView.getValues();
   if (!taskDetails.title) return;
 
-  let result;
+  submitTaskButton.disabled = true;
   try {
-    result = editingTaskId
-      ? taskCollection.update(editingTaskId, taskDetails)
-      : taskCollection.create(taskDetails);
+    const result = editingTaskId
+      ? await taskCollection.update(editingTaskId, taskDetails)
+      : await taskCollection.create(taskDetails);
+
+    if (!result.ok) {
+      handleTaskOperationFailure(result);
+      renderTaskViews();
+      return;
+    }
+
+    renderTaskViews();
+    resetTaskForm();
+    taskInput.focus();
   } catch (error) {
     storageWarning.hidden = false;
-    storageWarning.textContent = `اطلاعات واردشده معتبر نیست: ${error.message}`;
-    return;
+    storageWarning.textContent = `عملیات وظیفه انجام نشد: ${error.message}`;
+  } finally {
+    if (taskCollection.isStorageReady()) {
+      submitTaskButton.disabled = false;
+    }
   }
-
-  if (!result.ok) {
-    handleTaskOperationFailure(result);
-    renderTaskViews();
-    return;
-  }
-
-  renderTaskViews();
-  resetTaskForm();
-  taskInput.focus();
 });
 
 cancelEditButton.addEventListener("click", resetTaskForm);
@@ -172,9 +169,9 @@ taskListView = createTaskListView({
   getTasks: () => taskCollection.getTasks(),
   getSelectedDate: () => selectedDate,
   isStorageReady: () => taskCollection.isStorageReady(),
-  onToggleTask: (task, done) => {
+  onToggleTask: async (task, done) => {
     try {
-      const result = taskCollection.toggle(task.id, done);
+      const result = await taskCollection.toggle(task.id, done);
       if (!result.ok) handleTaskOperationFailure(result);
       renderTaskViews();
     } catch (error) {
@@ -183,14 +180,19 @@ taskListView = createTaskListView({
     }
   },
   onEditTask: startEditingTask,
-  onDeleteTask: (task) => {
-    const result = taskCollection.remove(task.id);
-    if (!result.ok) {
-      handleTaskOperationFailure(result);
-    } else if (editingTaskId === task.id) {
-      resetTaskForm();
+  onDeleteTask: async (task) => {
+    try {
+      const result = await taskCollection.remove(task.id);
+      if (!result.ok) {
+        handleTaskOperationFailure(result);
+      } else if (editingTaskId === task.id) {
+        resetTaskForm();
+      }
+      renderTaskViews();
+    } catch (error) {
+      storageWarning.hidden = false;
+      storageWarning.textContent = `حذف وظیفه انجام نشد: ${error.message}`;
     }
-    renderTaskViews();
   },
   formatTaskDate,
   formatDigits: toPersianDigits
@@ -223,5 +225,16 @@ calendarView = createCalendarView({
   formatDigits: toPersianDigits
 });
 
-showToday();
-renderTaskViews();
+async function initializeApp() {
+  try {
+    const result = await taskCollection.initialize();
+    if (!result.ok) lockStorage(result.error ?? new Error("Task storage initialization failed."));
+  } catch (error) {
+    lockStorage(error);
+  }
+
+  showToday();
+  renderTaskViews();
+}
+
+initializeApp();
