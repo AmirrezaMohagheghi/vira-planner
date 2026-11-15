@@ -39,6 +39,9 @@ export function updateTaskForUI(legacyTask, changes, options = {}) {
   const domainChanges = {};
 
   if (Object.hasOwn(changes, "title")) domainChanges.title = changes.title;
+  if (Object.hasOwn(changes, "description")) {
+    domainChanges.description = emptyToNull(changes.description);
+  }
   if (Object.hasOwn(changes, "date")) domainChanges.plannedDate = emptyToNull(changes.date);
   if (Object.hasOwn(changes, "time")) domainChanges.startTime = emptyToNull(changes.time);
   if (Object.hasOwn(changes, "priority")) domainChanges.priority = changes.priority;
