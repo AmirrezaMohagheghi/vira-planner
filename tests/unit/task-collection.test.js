@@ -56,7 +56,7 @@ test("requires a valid TaskRepository", () => {
   assert.throws(() => createTaskCollection(), /TaskRepository must be an object/);
   assert.throws(
     () => createTaskCollection({ taskRepository: { list() {} } }),
-    /TaskRepository requires getById\(\) function/
+    /TaskRepository requires a getById\(\) function/
   );
 });
 
@@ -194,6 +194,7 @@ test("serializes concurrent mutations without losing updates", async () => {
   assert.deepEqual(await Promise.all([first, second]), [{ ok: true }, { ok: true }]);
   assert.equal(subject.getTasks()[0].title, "دوم");
   assert.equal(subject.getTasks()[0].description, "توضیح");
+  assert.equal(store.read()[0].description, "توضیح");
   assert.equal(store.calls.save, 2);
 });
 
